@@ -148,8 +148,7 @@ dmypy.json
 *.pickle
 
 # do not track the data_access_config.py file.
-cluster_cat_dr/data_access_config.py
-data_access_config.py
+obszugang/access_config.py
 phangs_access_config.py
 
 # exceptions
