@@ -60,7 +60,8 @@ class XAccess:
 
         file_path = Path(access_config.phangs_config_dict['chandra_data_path'])
         if self.x_target_name == 'ngc5194':
-            file_name = '%s-%s-asca-merged-im-bin1.fits' % (self.x_target_name.upper(), energy)
+            # file_name = '%s-%s-asca-merged-im-bin1.fits' % (self.x_target_name.upper(), energy)
+            file_name = '%s-%s-merged-img-bin1_astro.fits' % (self.x_target_name.upper(), energy)
         else:
             file_name = '%s-%s-merged-img-bin1_astro.fits' % (self.x_target_name.upper(), energy)
 
