@@ -149,7 +149,7 @@ dmypy.json
 
 # do not track the data_access_config.py file.
 obszugang/access_config.py
-phangs_access_config.py
+access_config.py
 
 # exceptions
 # all specific data should be provided

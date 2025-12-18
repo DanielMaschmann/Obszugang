@@ -144,17 +144,23 @@ class ObsTools:
         return UnitTools.angstrom2unit(wave=phys_params.astrosat_bands_wave[band][wave_estimator], unit=unit)
 
     @staticmethod
-    def get_phangs_telescope_wave(target, band, telescope, wave_estimator='mean_wave', unit='mu'):
-        if telescope == 'hst':
-            return ObsTools.get_hst_band_wave(
-                band=band, instrument=ObsTools.get_hst_instrument(target=target, band=band),
-                wave_estimator=wave_estimator, unit=unit)
-        elif telescope == 'nircam':
-            return ObsTools.get_jwst_band_wave(band=band, instrument='nircam', wave_estimator=wave_estimator, unit=unit)
-        elif telescope == 'miri':
-            return ObsTools.get_jwst_band_wave(band=band, instrument='miri', wave_estimator=wave_estimator, unit=unit)
-        elif telescope == 'astrosat':
+    def get_obs_wave(band, obs, target=None, instrument=None, wave_estimator='mean_wave', unit='mu'):
+        if obs == 'hst':
+            if (target is None) & (instrument is None):
+                raise KeyError('Either target or instrument needs to be given!')
+            return ObsTools.get_hst_band_wave(band=band, instrument=instrument, wave_estimator=wave_estimator,
+                                              unit=unit)
+        elif obs == 'jwst':
+            if instrument is None:
+                raise KeyError('instrument is needed to distinguish between nircam and miri')
+            return ObsTools.get_jwst_band_wave(band=band, instrument=instrument, wave_estimator=wave_estimator,
+                                               unit=unit)
+        elif obs == 'astrosat':
             return ObsTools.get_astrosat_band_wave(band=band, wave_estimator=wave_estimator, unit=unit)
+        elif obs == 'roman':
+            return ObsTools.get_roman_band_wave(band=band, wave_estimator=wave_estimator, unit=unit)
+        else:
+            raise KeyError(obs, ' is not understand')
 
     @staticmethod
     def get_hst_obs_band_list(target):
@@ -320,9 +326,9 @@ class ObsTools:
             if band in hst_band_list:
                 obs_list.append('hst')
             elif band in nircam_band_list:
-                obs_list.append('nircam')
+                obs_list.append('jwst')
             elif band in miri_band_list:
-                obs_list.append('miri')
+                obs_list.append('jwst')
             else:
                 raise RuntimeError(band, ' is in no observation present.')
         return obs_list
@@ -446,7 +452,13 @@ class ObsTools:
             nircam_band_list = complete_nircam_band_list
             miri_band_list = complete_miri_band_list
             astrosat_band_list = complete_astrosat_band_list
-            band_list = hst_band_list + nircam_band_list + miri_band_list
+            band_list = []
+            if include_hst:
+                band_list += hst_band_list
+            if include_nircam:
+                band_list += nircam_band_list
+            if include_miri:
+                band_list += miri_band_list
             if include_astrosat:
                 band_list += astrosat_band_list
         else:
@@ -520,11 +532,11 @@ class ObsTools:
                 instrument_list.append(ObsTools.get_hst_instrument(target=hst_target_name, band=band))
                 target_name_list.append(hst_target_name)
             elif band in nircam_band_list:
-                obs_list.append('nircam')
+                obs_list.append('jwst')
                 instrument_list.append('nircam')
                 target_name_list.append(nircam_target_name)
             elif band in miri_band_list:
-                obs_list.append('miri')
+                obs_list.append('jwst')
                 instrument_list.append('miri')
                 target_name_list.append(miri_target_name)
             elif band in astrosat_band_list:
@@ -536,6 +548,79 @@ class ObsTools:
 
         return obs_list, instrument_list, target_name_list
 
+    @staticmethod
+    def get_obs_band_dict(band_list=None, target_name=None, hst_target_name=None, nircam_target_name=None,
+                          miri_target_name=None, astrosat_target_name=None, nircam_data_ver=None, miri_data_ver=None,
+                          astrosat_data_ver=None, include_hst=True, include_nircam=True, include_miri=True,
+                          include_astrosat=True):
+        """
+        Function to create a dict for the
+
+        Parameters
+        ----------
+        band_list :  None, list or array-like
+        target_name : None
+        hst_target_name :  str
+        nircam_target_name :  str
+        miri_target_name :  str
+        astrosat_target_name :  str
+        nircam_data_ver :  str
+        miri_data_ver :  str
+        astrosat_data_ver :  str
+        include_hst : bool
+        include_nircam : bool
+        include_miri : bool
+        include_astrosat :  bool
+
+        Returns
+        -------
+        obs_dict : dict
+        """
+
+        band_list, hst_band_list, nircam_band_list, miri_band_list, astrosat_band_list = (
+            ObsTools.split_obs_band_list(band_list=band_list, target_name=target_name, hst_target_name=hst_target_name,
+                                         nircam_target_name=nircam_target_name, miri_target_name=miri_target_name,
+                                         astrosat_target_name=astrosat_target_name, nircam_data_ver=nircam_data_ver,
+                                         miri_data_ver=miri_data_ver, astrosat_data_ver=astrosat_data_ver,
+                                         include_hst=include_hst, include_nircam=include_nircam,
+                                         include_miri=include_miri, include_astrosat=include_astrosat))
+
+        obs_list, instrument_list, target_name_list = (
+            ObsTools.get_obs_list(band_list=band_list, hst_band_list=hst_band_list, nircam_band_list=nircam_band_list,
+                                  miri_band_list=miri_band_list, astrosat_band_list=astrosat_band_list,
+                                  target_name=target_name, hst_target_name=hst_target_name,
+                                  nircam_target_name=nircam_target_name, miri_target_name=miri_target_name,
+                                  astrosat_target_name=astrosat_target_name,))
+
+        obs_dict = {}
+
+        # create dictionary
+        if include_hst & (len(hst_band_list) > 0):
+
+            mask_acs = np.array(instrument_list) == 'acs'
+            mask_uvis = np.array(instrument_list) == 'uvis'
+            mask_ir = np.array(instrument_list) == 'ir'
+
+            if sum(mask_acs) > 0:
+                obs_dict.update({'hst': {'acs': list(np.array(band_list)[mask_acs])}})
+            if sum(mask_uvis) > 0:
+                obs_dict.update({'hst': {'uvis': list(np.array(band_list)[mask_uvis])}})
+            if sum(mask_ir) > 0:
+                obs_dict.update({'hst': {'ir': list(np.array(band_list)[mask_ir])}})
+
+        if include_nircam & (len(nircam_band_list) > 0):
+            obs_dict.update({'jwst': {'nircam': nircam_band_list}})
+
+        if include_miri & (len(miri_band_list) > 0):
+            if 'jwst' in obs_dict.keys():
+                obs_dict['jwst'].update({'miri': miri_band_list})
+            else:
+                obs_dict.update({'jwst': {'miri': miri_band_list}})
+
+        if include_astrosat & (len(astrosat_band_list) > 0):
+            obs_dict.update({'astrosat': astrosat_band_list})
+
+        return obs_dict
 
     @staticmethod
     def filter_name2hst_band(target, filter_name):

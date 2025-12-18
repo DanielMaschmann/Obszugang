@@ -154,7 +154,7 @@ class SpecAccess:
         elif isinstance(map_type_list, str):
             map_type_list = [map_type_list]
 
-        cutout_pos = SkyCoord(ra=ra_cutout, dec=dec_cutout, unit=(u.degree, u.degree), frame='fk5')
+        cutout_pos = SkyCoord(ra=ra_cutout, dec=dec_cutout, unit=(u.degree, u.degree), frame='icrs')
         cutout_dict = {'cutout_pos': cutout_pos}
         cutout_dict.update({'cutout_size': cutout_size})
         cutout_dict.update({'map_type_list': map_type_list})
@@ -174,7 +174,7 @@ class SpecAccess:
 
     def load_muse_cube(self, res='copt'):
         """
-
+        # loads MUSE data cube into the constructor
         Parameters
         ----------
         res : str
@@ -184,26 +184,31 @@ class SpecAccess:
         # get MUSE data
         muse_hdu = fits.open(file_path)
         # get header
-        hdr = muse_hdu['DATA'].header
+        hdr_data = muse_hdu['DATA'].header
+        hdr_stat = muse_hdu['STAT'].header
         # get wavelength
-        wave_muse = hdr['CRVAL3'] + np.arange(hdr['NAXIS3']) * hdr['CD3_3']
+        wave_muse = (hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CD3_3']) * u.Unit(hdr_data['CUNIT3'])
         # get data and variance cube
         data_cube_muse = muse_hdu['DATA'].data
         var_cube_muse = muse_hdu['STAT'].data
+        # get units of data cube and variables
+        data_cube_unit = u.Unit(hdr_data['BUNIT'])
+        var_cube_unit = u.Unit(hdr_stat['BUNIT'])
         # get WCS
-        wcs_3d_muse = WCS(hdr)
+        wcs_3d_muse = WCS(hdr_data)
         wcs_2d_muse = wcs_3d_muse.celestial
-
+        # close header
         muse_hdu.close()
-
+        # add data to the class attributes
         self.muse_datacube_data.update({
             'wave_%s' % res: wave_muse,
             'data_cube_%s' % res: data_cube_muse,
             'var_cube_%s' % res: var_cube_muse,
-            'hdr_%s' % res: hdr,
+            'data_cube_unit_%s' % res: data_cube_unit,
+            'var_cube_unit_%s' % res: var_cube_unit,
+            'hdr_%s' % res: hdr_data,
             'wcs_3d_%s' % res: wcs_3d_muse,
             'wcs_2d_%s' % res: wcs_2d_muse
-
         })
 
     def load_kcwi_cube(self):
@@ -241,24 +246,6 @@ class SpecAccess:
             'wcs_2d': wcs_2d_kcwi
 
         })
-
-    def get_kcwi_lsf(self, wave):
-        """
-        Adopted from van Dokkum+2019 2019ApJ...880...91V
-        Equation 11
-
-        Parameters
-        ----------
-        wave : float or array
-            in Units of angstrom
-        Return
-        ---------
-        lsf : floar or array
-            in Units of angstrom
-
-        """
-
-        return 0.377 - 5.79e-5 * (wave - 5000) - 1.144e-7 * ((wave - 5000)**2)
 
     def get_muse_obs_coverage_hull_dict(self):
         """
@@ -403,17 +390,15 @@ class SpecAccess:
                                  (y_data_muse - obj_coords_muse_pix[1]) ** 2) < selection_radius_pix)
 
         # extract fluxes
-        native_spec_flx = np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1)
-        native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1))
-        # rescale to the unit of 10$^{-16}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$
-        native_spec_flx *= 1e-20
-        native_spec_flx_err *= 1e-20
-        unit_spec_flx = 1e-16 * u.erg / u.cm / u.cm / u.s / u.A
+        native_spec_flx = (np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1) *
+                           self.muse_datacube_data['data_cube_unit_%s' % res])
+        native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1) *
+                                      self.muse_datacube_data['var_cube_unit_%s' % res])
+
         # get wavelengths
         native_wave = self.muse_datacube_data['wave_%s' % res]
-        unit_wave = u.A
         # getting line spread function
-        lsf = get_MUSE_polyFWHM(self.muse_datacube_data['wave_%s' % res], version="udf10")
+        lsf_fwhm = spec_tools.SpecHelper.get_muse_lsf_fwhm(wave = native_wave)
 
         # get wavelength range
         if wave_range is None:
@@ -422,43 +407,26 @@ class SpecAccess:
         else:
             wave_range = wave_range
 
+        print('wave_range ', wave_range)
+
         # make sure wave length range is applied to all arrays
         mask_wave_range = (native_wave >= wave_range[0]) & (native_wave <= wave_range[1])
         native_spec_flx = native_spec_flx[mask_wave_range]
         native_spec_flx_err = native_spec_flx_err[mask_wave_range]
         native_wave = native_wave[mask_wave_range]
-        lsf = lsf[mask_wave_range]
+        lsf_fwhm = lsf_fwhm[mask_wave_range]
         native_good_pixel_mask = np.invert(np.isnan(native_spec_flx) + np.isinf(native_spec_flx))
-
-        # for further computation we also compute a rebinned spectrum for
-        ln_rebin_ln_wave, ln_rebin_wave, ln_rebin_spec_flx, ln_rebin_spec_flx_err, ln_rebin_velscale_kmps_per_pix = (
-            spec_tools.SpecTools.log_rebin_spec_data(wave=native_wave, spec_flx=native_spec_flx,
-                                                     spec_flx_err=native_spec_flx_err))
-        ln_rebin_good_pixel_mask = np.invert(np.isnan(ln_rebin_spec_flx) + np.isinf(ln_rebin_spec_flx))
-        ln_rebin_wave_range = [np.nanmin(ln_rebin_wave), np.nanmax(ln_rebin_wave)]
 
         return {
             # general description of spectrum
             'rad_arcsec': rad_arcsec,
-            'lsf': lsf,
+            'lsf_fwhm': lsf_fwhm,
             # native spectrum
             'native_wave_range': wave_range,
             'native_spec_flx': native_spec_flx,
             'native_spec_flx_err': native_spec_flx_err,
-            'unit_spec_flx': unit_spec_flx,
             'native_wave': native_wave,
-            'unit_wave': unit_wave,
             'native_good_pixel_mask': native_good_pixel_mask,
-            # ln rebinned spectrum
-            'ln_rebin_wave_range': ln_rebin_wave_range,
-            'ln_rebin_ln_wave': ln_rebin_ln_wave,
-            'ln_rebin_wave': ln_rebin_wave,
-            'ln_rebin_spec_flx': ln_rebin_spec_flx,
-            'ln_rebin_spec_flx_err': ln_rebin_spec_flx_err,
-            'ln_rebin_velscale_kmps_per_pix': ln_rebin_velscale_kmps_per_pix,
-            'ln_rebin_unit_spec_flx': unit_spec_flx,
-            'ln_rebin_unit_wave': unit_wave,
-            'ln_rebin_good_pixel_mask': ln_rebin_good_pixel_mask
         }
 
     def extract_kcwi_spec_circ_app(self, ra, dec, rad_arcsec, wave_range=None):

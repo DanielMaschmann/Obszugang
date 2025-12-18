@@ -25,6 +25,8 @@ phangs_config_dict = {
     'hst_ha_cont_sub_ver': 'v1p1',
     # X-ray access
     'chandra_data_path': '/media/benutzer/derka_derka/data/chandra/MAIN_IMAGE_PRODUCTS',
+    # X-ray access
+    'radio_data_path': '/media/benutzer/derka_derka/data/radio/VLA/',
     # HST cluster catalog
     'phangs_hst_cluster_cat_data_path': '/home/benutzer/data/PHANGS_products/HST_catalogs',
     'phangs_hst_cluster_cat_release': 'phangs_hst_cc_dr4_cr3_public',
