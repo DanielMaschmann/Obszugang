@@ -136,7 +136,7 @@ class SpecAccess:
         muse_map_wcs = WCS(muse_hdu[map_type].header)
         muse_hdu.close()
 
-        data_identifier = helper_func.SpecHelper.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
 
         self.muse_dap_map_data.update({
             'dap_map_data_%s_%s' % (data_identifier, map_type): muse_map_data,
@@ -144,7 +144,7 @@ class SpecAccess:
         })
 
     def check_dap_map_loaded(self, res='copt', ssp_model='fiducial', map_type='HA6562_FLUX'):
-        data_identifier = helper_func.SpecHelper.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
         if not 'dap_map_data_%s_%s' % (data_identifier, map_type) in self.muse_dap_map_data.keys():
             self.load_muse_dap_map(res=res, ssp_model=ssp_model, map_type=map_type)
 
@@ -159,7 +159,7 @@ class SpecAccess:
         cutout_dict.update({'cutout_size': cutout_size})
         cutout_dict.update({'map_type_list': map_type_list})
 
-        data_identifier = helper_func.SpecHelper.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
 
         for map_type in map_type_list:
             # make sure that map typ is loaded
@@ -188,12 +188,21 @@ class SpecAccess:
         hdr_stat = muse_hdu['STAT'].header
         # get wavelength
         wave_muse = (hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CD3_3']) * u.Unit(hdr_data['CUNIT3'])
+        # distinguish between vacuum and air wavelength
+        if hdr_data['CTYPE3'][:4] == 'AWAV':
+            vacuum = False
+        else:
+            vacuum = True
         # get data and variance cube
         data_cube_muse = muse_hdu['DATA'].data
         var_cube_muse = muse_hdu['STAT'].data
         # get units of data cube and variables
-        data_cube_unit = u.Unit(hdr_data['BUNIT'])
-        var_cube_unit = u.Unit(hdr_stat['BUNIT'])
+        if hdr_data['BUNIT'] == '':
+            data_cube_unit = (1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom
+            var_cube_unit = ((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
+        else:
+            data_cube_unit = u.Unit(hdr_data['BUNIT'])
+            var_cube_unit = u.Unit(hdr_stat['BUNIT'])
         # get WCS
         wcs_3d_muse = WCS(hdr_data)
         wcs_2d_muse = wcs_3d_muse.celestial
@@ -202,6 +211,7 @@ class SpecAccess:
         # add data to the class attributes
         self.muse_datacube_data.update({
             'wave_%s' % res: wave_muse,
+            'vacuum_%s' % res: vacuum,
             'data_cube_%s' % res: data_cube_muse,
             'var_cube_%s' % res: var_cube_muse,
             'data_cube_unit_%s' % res: data_cube_unit,
@@ -392,6 +402,7 @@ class SpecAccess:
         # extract fluxes
         native_spec_flx = (np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1) *
                            self.muse_datacube_data['data_cube_unit_%s' % res])
+
         native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1) *
                                       self.muse_datacube_data['var_cube_unit_%s' % res])
 
@@ -407,27 +418,41 @@ class SpecAccess:
         else:
             wave_range = wave_range
 
-        print('wave_range ', wave_range)
-
         # make sure wave length range is applied to all arrays
         mask_wave_range = (native_wave >= wave_range[0]) & (native_wave <= wave_range[1])
         native_spec_flx = native_spec_flx[mask_wave_range]
         native_spec_flx_err = native_spec_flx_err[mask_wave_range]
+        # hot fix for nan errors
+        mask_problematic_err = np.isnan(native_spec_flx) + np.isinf(native_spec_flx) + np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)
+        native_spec_flx_err[mask_problematic_err] = native_spec_flx[mask_problematic_err]
         native_wave = native_wave[mask_wave_range]
         lsf_fwhm = lsf_fwhm[mask_wave_range]
-        native_good_pixel_mask = np.invert(np.isnan(native_spec_flx) + np.isinf(native_spec_flx))
+        native_good_pixel_mask = (np.invert(np.isnan(native_spec_flx) + np.isinf(native_spec_flx) +
+                                            np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)))
 
-        return {
+        spec_dict = {
             # general description of spectrum
             'rad_arcsec': rad_arcsec,
             'lsf_fwhm': lsf_fwhm,
             # native spectrum
             'native_wave_range': wave_range,
+            'nativ_wave_vaccum': self.muse_datacube_data['vacuum_%s' % res],
             'native_spec_flx': native_spec_flx,
             'native_spec_flx_err': native_spec_flx_err,
             'native_wave': native_wave,
             'native_good_pixel_mask': native_good_pixel_mask,
         }
+
+
+        # get redshift if possible
+        redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=self.spec_target_name)
+        sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
+        spec_dict.update({
+            'redshift': redshift,
+            'sys_vel': sys_vel,
+        })
+
+        return spec_dict
 
     def extract_kcwi_spec_circ_app(self, ra, dec, rad_arcsec, wave_range=None):
         """
