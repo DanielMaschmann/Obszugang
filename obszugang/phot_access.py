@@ -6,21 +6,17 @@ from pathlib import Path
 import pickle
 import numpy as np
 from astropy.extern.ply.yacc import VersionError
-from scipy.constants import c as speed_of_light
+from astropy.wcs import FITSFixedWarning
+import warnings
+# ignore JWST pipline warning which comes from a header modification
+# see also https://github.com/astropy/astropy/issues/13463
+warnings.simplefilter("ignore", category=FITSFixedWarning)
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.wcs import WCS
-from astropy.wcs import FITSFixedWarning
 from astroquery.skyview import SkyView
-from obszugang import access_config, obs_info
-from obszugang import ObsTools
+from obszugang import access_config, obs_info, ObsTools
 from werkzeugkiste import helper_func, phot_tools, phys_params
-
-
-# ignore JWST pipline warning which comes from a header modification
-# see also https://github.com/astropy/astropy/issues/13463
-import warnings
-warnings.simplefilter("ignore", category=FITSFixedWarning)
 
 
 class PhotAccess:
@@ -544,6 +540,8 @@ class PhotAccess:
         # check if band is really covered
         if self.check_coords_covered_by_band(obs='hst', ra=ra, dec=dec, band=hst_ha_band, max_dist_dist2hull_arcsec=max_dist_dist2hull_arcsec):
             return hst_ha_band
+        else:
+            return []
 
     def get_covered_hst_ha_cont_sub_band(self, ra, dec, max_dist_dist2hull_arcsec=2):
 
@@ -976,9 +974,9 @@ class PhotAccess:
         -------
         coverage_dict : dict
         """
-        if not os.path.isfile(self.path2obs_cover_hull / ('%s_hst_obs_hull_dict.npy' % self.phot_hst_target_name)):
+        if not os.path.isfile(self.path2obs_cover_hull / ('%s_hst_obs_hull_dict.pickle' % self.phot_hst_target_name)):
             return None
-        with open(self.path2obs_cover_hull / ('%s_hst_obs_hull_dict.npy' % self.phot_hst_target_name), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_hst_obs_hull_dict.pickle' % self.phot_hst_target_name), 'rb') as file_name:
             return pickle.load(file_name)
 
     def get_nircam_obs_coverage_hull_dict(self):
@@ -989,9 +987,9 @@ class PhotAccess:
         -------
         coverage_dict : dict
         """
-        if not os.path.isfile(self.path2obs_cover_hull / ('%s_nircam_obs_hull_dict_%s.npy' % (self.phot_nircam_target_name, self.nircam_data_ver))):
+        if not os.path.isfile(self.path2obs_cover_hull / ('%s_nircam_obs_hull_dict_%s.pickle' % (self.phot_nircam_target_name, self.nircam_data_ver))):
             return None
-        with open(self.path2obs_cover_hull / ('%s_nircam_obs_hull_dict_%s.npy' % (self.phot_nircam_target_name, self.nircam_data_ver)), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_nircam_obs_hull_dict_%s.pickle' % (self.phot_nircam_target_name, self.nircam_data_ver)), 'rb') as file_name:
             return pickle.load(file_name)
 
     def get_miri_obs_coverage_hull_dict(self):
@@ -1002,9 +1000,9 @@ class PhotAccess:
         -------
         coverage_dict : dict
         """
-        if not os.path.isfile(self.path2obs_cover_hull / ('%s_miri_obs_hull_dict_%s.npy' % (self.phot_miri_target_name, self.miri_data_ver))):
+        if not os.path.isfile(self.path2obs_cover_hull / ('%s_miri_obs_hull_dict_%s.pickle' % (self.phot_miri_target_name, self.miri_data_ver))):
             return None
-        with open(self.path2obs_cover_hull / ('%s_miri_obs_hull_dict_%s.npy' % (self.phot_miri_target_name, self.miri_data_ver)), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_miri_obs_hull_dict_%s.pickle' % (self.phot_miri_target_name, self.miri_data_ver)), 'rb') as file_name:
             return pickle.load(file_name)
 
     def get_astrosat_obs_coverage_hull_dict(self):
@@ -1016,9 +1014,9 @@ class PhotAccess:
         coverage_dict : dict
         """
 
-        if not os.path.isfile(self.path2obs_cover_hull / ('%s_astrosat_obs_hull_dict_%s.npy' % (self.phot_astrosat_target_name, self.astrosat_data_ver))):
+        if not os.path.isfile(self.path2obs_cover_hull / ('%s_astrosat_obs_hull_dict_%s.pickle' % (self.phot_astrosat_target_name, self.astrosat_data_ver))):
             return None
-        with open(self.path2obs_cover_hull / ('%s_astrosat_obs_hull_dict_%s.npy' % (self.phot_astrosat_target_name, self.astrosat_data_ver)), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_astrosat_obs_hull_dict_%s.pickle' % (self.phot_astrosat_target_name, self.astrosat_data_ver)), 'rb') as file_name:
             return pickle.load(file_name)
 
     def check_coords_covered_by_band(self, ra, dec, band, obs, instrument=None,  max_dist_dist2hull_arcsec=2):

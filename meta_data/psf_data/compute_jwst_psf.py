@@ -1,14 +1,12 @@
 """
 all needed data of JWST PSFs
 """
-import numpy as np
 import os
-
-from phangs_data_access import phot_tools, phys_params
-import matplotlib.pyplot as plt
-# import webbpsf
-import stpsf
+import numpy as np
 import pickle
+from werkzeugkiste import phot_tools, phys_params
+import matplotlib.pyplot as plt
+import stpsf
 
 
 
@@ -102,7 +100,7 @@ for band in nircam_band_list:
 if not os.path.isdir('data_output'):
     os.makedirs('data_output')
 
-with open('data_output/nircam_psf_dict.npy', 'wb') as file_name:
+with open('data_output/nircam_psf_dict.pickle', 'wb') as file_name:
     pickle.dump(psf_dict_jwst_nircam, file_name)
 
 
@@ -172,9 +170,7 @@ for band in miri_band_list:
         psf_dict_jwst_miri[band].update({'ee_%s_arcsec' % ee: ee_values_arcsec[idx_ee]})
         psf_dict_jwst_miri[band].update({'ee_%s_pix' % ee: ee_values_pix[idx_ee]})
 
-
-
-with open('data_output/miri_psf_dict.npy', 'wb') as file_name:
+with open('data_output/miri_psf_dict.pickle', 'wb') as file_name:
     pickle.dump(psf_dict_jwst_miri, file_name)
 
 plt.show()

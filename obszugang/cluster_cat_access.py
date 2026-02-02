@@ -1,9 +1,9 @@
 """
 Access structure for HST star cluster catalog access access
 """
-import os.path
-import numpy as np
+import os
 from pathlib import Path
+import numpy as np
 from astropy.table import Table, hstack
 import astropy.units as u
 from werkzeugkiste import helper_func

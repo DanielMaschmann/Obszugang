@@ -1,9 +1,7 @@
 """
 Construct a data access structure for all kind of X-ray observation
 """
-import os.path
 from pathlib import Path
-import pickle
 import astropy.units as u
 import astropy.wcs
 import numpy as np

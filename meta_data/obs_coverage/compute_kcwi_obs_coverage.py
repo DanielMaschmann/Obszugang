@@ -5,18 +5,17 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import spec_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
+from werkzeugkiste import helper_func
+from obszugang import obs_info, spec_access
 
 import matplotlib.pyplot as plt
 
-target_list = phangs_info.phangs_kcwi_galaxy_list
+target_list = obs_info.phangs_kcwi_galaxy_list
 
 
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_kcwi_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_kcwi_obs_hull_dict.pickle' % target):
     #     continue
 
     # now get kcwi bands
@@ -67,7 +66,7 @@ for target in target_list:
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_kcwi_obs_hull_dict.npy' % target, 'wb') as file_name:
+    with open('data_output/%s_kcwi_obs_hull_dict.pickle' % target, 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

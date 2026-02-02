@@ -4,12 +4,9 @@ Script to compute profile fitting correction values for JWST
 
 import os.path
 import pickle
-
 import numpy as np
 import matplotlib.pyplot as plt
-
-from phangs_data_access import phot_tools, phangs_info, phys_params, helper_func
-
+from werkzeugkiste import helper_func, phys_params, phot_tools
 from astropy.convolution import Gaussian2DKernel
 from astropy.convolution import convolve
 
@@ -116,10 +113,6 @@ if not os.path.isdir('data_output'):
 
 with open('data_output/nircam_psf_correction_dict.pickle', 'wb') as file_name:
     pickle.dump(nircam_psf_correction_dict, file_name)
-
-
-
-
 
 
 

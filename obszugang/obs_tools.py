@@ -480,6 +480,7 @@ class ObsTools:
 
     @staticmethod
     def get_obs_list(band_list, hst_band_list, nircam_band_list, miri_band_list, astrosat_band_list,
+                     instrument_list=None,
                      target_name=None, hst_target_name=None, nircam_target_name=None, miri_target_name=None,
                      astrosat_target_name=None,):
         """
@@ -492,6 +493,7 @@ class ObsTools:
         nircam_band_list : list or array-like
         miri_band_list : list or array-like
         astrosat_band_list : list or array-like
+        instrument_list :  None, list or array-like
         target_name : None
         hst_target_name : str
         nircam_target_name : str
@@ -522,26 +524,35 @@ class ObsTools:
             astrosat_target_name = target_name
 
         obs_list = []
-        instrument_list = []
+        if instrument_list is None:
+            get_instrument_flag = True
+            instrument_list = []
+        else:
+            get_instrument_flag = False
+
         target_name_list = []
 
         for band in band_list:
             # get observations
             if band in hst_band_list:
                 obs_list.append('hst')
-                instrument_list.append(ObsTools.get_hst_instrument(target=hst_target_name, band=band))
+                if get_instrument_flag:
+                    instrument_list.append(ObsTools.get_hst_instrument(target=hst_target_name, band=band))
                 target_name_list.append(hst_target_name)
             elif band in nircam_band_list:
                 obs_list.append('jwst')
-                instrument_list.append('nircam')
+                if get_instrument_flag:
+                    instrument_list.append('nircam')
                 target_name_list.append(nircam_target_name)
             elif band in miri_band_list:
                 obs_list.append('jwst')
-                instrument_list.append('miri')
+                if get_instrument_flag:
+                    instrument_list.append('miri')
                 target_name_list.append(miri_target_name)
             elif band in astrosat_band_list:
                 obs_list.append('astrosat')
-                instrument_list.append('astrosat')
+                if get_instrument_flag:
+                    instrument_list.append('astrosat')
                 target_name_list.append(astrosat_target_name)
             else:
                 raise RuntimeError(band, ' is in no observation present.')

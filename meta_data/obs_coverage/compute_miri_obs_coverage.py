@@ -5,7 +5,9 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import phot_access, helper_func, phangs_info
+
+from werkzeugkiste import helper_func
+from obszugang import obs_info, phot_access
 import matplotlib.pyplot as plt
 from astropy.visualization import SqrtStretch, SinhStretch, LogStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
@@ -16,13 +18,13 @@ plot_flag = True
 
 miri_version = 'v1p1p1'
 
-target_list = list(getattr(phangs_info, 'jwst_obs_band_dict_%s' % miri_version).keys())
+target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % miri_version).keys())
 
 print(target_list)
 
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_miri_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_miri_obs_hull_dict.pickle' % target):
     #     continue
 
     # now get miri bands
@@ -86,7 +88,7 @@ for target in target_list:
     # save dictionary
     if not os.path.isdir('data_output'): os.makedirs('data_output')
 
-    with open('data_output/%s_miri_obs_hull_dict_%s.npy' % (target, miri_version), 'wb') as file_name:
+    with open('data_output/%s_miri_obs_hull_dict_%s.pickle' % (target, miri_version), 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
     # if plot_flag:

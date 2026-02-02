@@ -5,19 +5,20 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import spec_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
-
+from werkzeugkiste import helper_func
+from obszugang import obs_info
+from obszugang import spec_access
 import matplotlib.pyplot as plt
 
-target_list = phangs_info.phangs_muse_galaxy_list
+target_list = obs_info.phangs_muse_galaxy_list
 
 
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_muse_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_muse_obs_hull_dict.pickle' % target):
     #     continue
+
+    # target = 'ngc2835'
 
     # now get muse bands
     phangs_spec = spec_access.SpecAccess(spec_target_name=target)
@@ -41,9 +42,19 @@ for target in target_list:
         hull_dict = helper_func.GeometryTools.contour2hull(data_array=mask_coverage, level=0, contour_index=0, n_max_rejection_vertice=100)
         print(res, ' n of hulls: ', len(hull_dict.keys()))
 
+
+        # fig = plt.figure(figsize=(20, 20))
+        # ax_img = fig.add_axes((0.05, 0.05, 0.945, 0.945), projection=wcs)
+        # ax_img.imshow(data)
+
+
+
         # now save the hull points as coordinates
         hull_coord_dict = {}
         for idx in hull_dict.keys():
+
+            # ax_img.plot(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
+
             # transform into coordinates
             coordinates = wcs.pixel_to_world(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
             ra = coordinates.ra.deg
@@ -51,11 +62,19 @@ for target in target_list:
             hull_coord_dict.update({idx: {'ra': ra, 'dec': dec}})
         obs_hull_dict.update({res: hull_coord_dict})
 
+        # plt.show()
+
+
+
+
+    # exit()
+
+
     # save dictionary
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_muse_obs_hull_dict.npy' % target, 'wb') as file_name:
+    with open('data_output/%s_muse_obs_hull_dict.pickle' % target, 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

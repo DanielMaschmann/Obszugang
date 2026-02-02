@@ -5,10 +5,9 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import phot_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
-from phangs_data_access import phangs_access_config
+
+from obszugang import phot_access, obs_info
+from werkzeugkiste import helper_func
 import matplotlib.pyplot as plt
 
 
@@ -16,12 +15,12 @@ plot_flag = True
 
 nircam_version = 'v1p1p1'
 
-target_list = list(getattr(phangs_info, 'jwst_obs_band_dict_%s' % nircam_version).keys())
+target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % nircam_version).keys())
 
 print(target_list)
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_nircam_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_nircam_obs_hull_dict.pickle' % target):
     #     continue
 
     # now get nircam bands
@@ -75,7 +74,7 @@ for target in target_list:
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_nircam_obs_hull_dict_%s.npy' % (target, nircam_version), 'wb') as file_name:
+    with open('data_output/%s_nircam_obs_hull_dict_%s.pickle' % (target, nircam_version), 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

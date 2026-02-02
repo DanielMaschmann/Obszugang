@@ -5,22 +5,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
-from phangs_data_access import phot_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
+
+from obszugang import phot_access, obs_info
+from werkzeugkiste import helper_func
 
 
 plot_flag = True
 
 astrosat_version = 'v1p0'
 
-target_list = list(getattr(phangs_info, 'astrosat_obs_band_dict_%s' % astrosat_version).keys())
+target_list = list(getattr(obs_info, 'astrosat_obs_band_dict_%s' % astrosat_version).keys())
 
 print(target_list)
 
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_astrosat_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_astrosat_obs_hull_dict.pickle' % target):
     #     continue
 
 
@@ -63,7 +63,7 @@ for target in target_list:
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_astrosat_obs_hull_dict_%s.npy' % (target, astrosat_version), 'wb') as file_name:
+    with open('data_output/%s_astrosat_obs_hull_dict_%s.pickle' % (target, astrosat_version), 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

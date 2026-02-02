@@ -68,6 +68,8 @@ class PhangsSampleAccess:
             Galaxy name
         """
         if target == 'ngc1808': return 76.926384, -37.512920
+        elif target == 'm33': return 23.462042, 30.660222
+        elif target == 'm33_10.0_mpc': return 23.462042, 30.660222
         self.check_load_phangs_data_table()
         mask_target = self.phangs_sample_table['name'] == target
         return (float(self.phangs_sample_table['orient_ra'][mask_target].value[0]),

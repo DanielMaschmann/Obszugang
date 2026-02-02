@@ -33,7 +33,7 @@ phangs_hst_treasury_2_galaxy_list = [
     'ic5273', 'ngc1068', 'ngc1637', 'ngc1808', 'ngc2090', 'ngc2566', 'ngc2997', 'ngc2997e', 'ngc2997w', 'ngc3059',
     'ngc3368', 'ngc3507', 'ngc3511', 'ngc3521s', 'ngc3596', 'ngc4424', 'ngc4496a', 'ngc4694', 'ngc4731', 'ngc4941',
     'ngc4951', 'ngc5042', 'ngc5530', 'ngc5643', 'ngc7456', 'ngc7793']
-hst_add_galaxy_list = ['ngc5194']
+hst_add_galaxy_list = ['ngc5194', 'm33_10.0_mpc']
 full_hst_galaxy_list = phangs_hst_treasury_1_galaxy_list + phangs_hst_treasury_2_galaxy_list + hst_add_galaxy_list
 
 # cycle 1 proposal GO 2107
@@ -95,6 +95,12 @@ astrosat_available_data_versions = ['v1p0']
 # note that HST does not have a version number as it is a rolling release
 
 hst_obs_band_dict = {
+    'm33_10.0_mpc': {
+        'acs': ['F475W', 'F814W'],
+         'uvis': ['F275W', 'F336W'],
+         'acs_uvis': [],
+         'ir': []},
+
     'ic1954':
         {'acs': [],
          'uvis': ['F275W', 'F336W', 'F438W', 'F555W', 'F657N', 'F814W'],

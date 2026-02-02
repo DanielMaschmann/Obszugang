@@ -4,17 +4,12 @@ Script to compute profile fitting correction values for JWST
 
 import os.path
 import pickle
-
 import numpy as np
 import matplotlib.pyplot as plt
-
-from phangs_data_access import phot_tools, phangs_info, phys_params, helper_func
-from phangs_visualizer import plotting_tools
-
 from astropy.convolution import Gaussian2DKernel
 from astropy.convolution import convolve
-
-from scipy.interpolate import RegularGridInterpolator
+from werkzeugkiste import helper_func, phot_tools, phys_params
+from malkasten import plotting_tools
 
 
 nircam_fact_img_size = 5

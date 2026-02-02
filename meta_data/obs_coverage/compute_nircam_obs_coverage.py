@@ -5,10 +5,8 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import phot_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
-from phangs_data_access import phangs_access_config
+from werkzeugkiste import helper_func
+from obszugang import obs_info, phot_access, ObsTools
 import matplotlib.pyplot as plt
 
 
@@ -16,30 +14,33 @@ plot_flag = True
 
 nircam_version = 'v1p1p1'
 
-target_list = list(getattr(phangs_info, 'jwst_obs_band_dict_%s' % nircam_version).keys())
+target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % nircam_version).keys())
 
 print(target_list)
 for target in target_list:
 
-    # if os.path.isfile('data_output/%s_nircam_obs_hull_dict.npy' % target):
+    # target = 'ngc2835'
+
+
+    # if os.path.isfile('data_output/%s_nircam_obs_hull_dict.pickle' % target):
     #     continue
 
     # now get nircam bands
     phangs_phot = phot_access.PhotAccess(phot_target_name=target, phot_nircam_target_name=target, nircam_data_ver=nircam_version)
 
     # get band list
-    band_list = helper_func.ObsTools.get_nircam_obs_band_list(target=target, version=nircam_version)
+    band_list = ObsTools.get_nircam_obs_band_list(target=target, version=nircam_version)
 
     print(target, ' bands, available: ', band_list)
-    phangs_phot.load_phangs_bands(band_list=band_list)
+    phangs_phot.load_obs_bands(band_list=band_list)
 
 
 
     obs_hull_dict = {}
     for band in band_list:
 
-        img_data = phangs_phot.nircam_bands_data['%s_data_img' % band]
-        img_wcs = phangs_phot.nircam_bands_data['%s_wcs_img' % band]
+        img_data = phangs_phot.jwst_bands_data['%s_data_img' % band]
+        img_wcs = phangs_phot.jwst_bands_data['%s_wcs_img' % band]
         # plt.imshow(img_data)
         if nircam_version == 'v1p1p1':
             mask_covered_pixels = np.array(np.invert(img_data == 0), dtype=float)
@@ -57,9 +58,19 @@ for target in target_list:
             hull_dict = {0: hull_dict[0]}
         if (target == 'ngc1068') & (band in ['F300M', 'F335M']):
             hull_dict = {0: hull_dict[0]}
+
+
+        # fig = plt.figure(figsize=(20, 20))
+        # ax_img = fig.add_axes((0.05, 0.05, 0.945, 0.945), projection=img_wcs)
+        # ax_img.imshow(np.log10(img_data))
+
+
         # now save the hull points as coordinates
         hull_coord_dict = {}
         for idx in hull_dict.keys():
+
+            # ax_img.plot(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
+
             # transform into coordinates
             coordinates = img_wcs.pixel_to_world(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
             ra = coordinates.ra.deg
@@ -71,11 +82,13 @@ for target in target_list:
 
         # plt.show()
 
+        # exit()
+
     # save dictionary
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_nircam_obs_hull_dict_%s.npy' % (target, nircam_version), 'wb') as file_name:
+    with open('data_output/%s_nircam_obs_hull_dict_%s.pickle' % (target, nircam_version), 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

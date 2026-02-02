@@ -1,14 +1,11 @@
 """
 Construct a data access structure for CO and HI gas observations
 """
-import os.path
 from pathlib import Path
 import pickle
-import astropy.units as u
-import astropy.wcs
 import numpy as np
+import astropy.units as u
 from astropy.coordinates import SkyCoord
-from scipy.constants import c as speed_of_light
 from werkzeugkiste import helper_func, phys_params
 from obszugang import access_config, gal_access
 
@@ -434,7 +431,7 @@ class GasAccess:
         """
         # return np.load(self.path2obs_cover_hull / ('%s_alma_obs_hull_dict.npy' % self.gas_target_name),
         #                allow_pickle=True).item()
-        with open(self.path2obs_cover_hull / ('%s_alma_obs_hull_dict.npy' % self.gas_target_name), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_alma_obs_hull_dict.pickle' % self.gas_target_name), 'rb') as file_name:
             return pickle.load(file_name)
 
     def check_coords_covered_by_alma(self, ra, dec, res='native', max_dist_dist2hull_arcsec=2):

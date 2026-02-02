@@ -4,7 +4,8 @@ create all needed data for the HST PSFs
 import numpy as np
 import os
 from astropy.io import fits
-from phangs_data_access import phot_tools, phangs_info
+from obszugang import obs_tools
+from werkzeugkiste import phot_tools
 import matplotlib.pyplot as plt
 import pickle
 
@@ -28,9 +29,9 @@ ee_str = ['25', '30', '35', '40', '45', '50', '55', '60', '65', '70', '75', '80'
 
 
 
-acs_wfc_band_list = phangs_info.acs_wfc_psf_band_list
-wfc3_uv_band_list = phangs_info.wfc3_uv_psf_band_list
-wfc3_ir_band_list = phangs_info.wfc3_ir_psf_band_list
+acs_wfc_band_list = obs_tools.acs_wfc_psf_band_list
+wfc3_uv_band_list = obs_tools.wfc3_uv_psf_band_list
+wfc3_ir_band_list = obs_tools.wfc3_ir_psf_band_list
 
 
 
@@ -102,7 +103,7 @@ for band in acs_wfc_band_list:
 if not os.path.isdir('data_output'):
     os.makedirs('data_output')
 
-with open('data_output/hst_acs_wfc_psf_dict.npy', 'wb') as file_name:
+with open('data_output/hst_acs_wfc_psf_dict.pickle', 'wb') as file_name:
     pickle.dump(psf_dict_hst_acs_wfc, file_name)
 
 
@@ -163,7 +164,7 @@ for band in wfc3_uv_band_list:
         psf_dict_hst_wfc3_uv[band].update({'ee_%s_arcsec' % ee: ee_values_arcsec[idx_ee]})
         psf_dict_hst_wfc3_uv[band].update({'ee_%s_pix' % ee: ee_values_pix[idx_ee]})
 
-with open('data_output/hst_wfc3_uv_psf_dict.npy', 'wb') as file_name:
+with open('data_output/hst_wfc3_uv_psf_dict.pickle', 'wb') as file_name:
     pickle.dump(psf_dict_hst_wfc3_uv, file_name)
 
 
@@ -217,7 +218,7 @@ for band in wfc3_ir_band_list:
         psf_dict_hst_wfc3_ir[band].update({'ee_%s_arcsec' % ee: ee_values_arcsec[idx_ee]})
         psf_dict_hst_wfc3_ir[band].update({'ee_%s_pix' % ee: ee_values_pix[idx_ee]})
 
-with open('data_output/hst_wfc3_ir_psf_dict.npy', 'wb') as file_name:
+with open('data_output/hst_wfc3_ir_psf_dict.pickle', 'wb') as file_name:
     pickle.dump(psf_dict_hst_wfc3_ir, file_name)
 
 

@@ -5,17 +5,15 @@ Script to develop how to check the observational coverage of a PHANGS target
 import numpy as np
 import os
 import pickle
-from phangs_data_access import phot_access
-from phangs_data_access import helper_func
-from phangs_data_access import phangs_info
-
+from obszugang import phot_access, obs_info
+from werkzeugkiste import helper_func
 import matplotlib.pyplot as plt
 
-target_list = list(phangs_info.full_hst_galaxy_list)
+target_list = list(obs_info.full_hst_galaxy_list)
 
 
 for target in target_list:
-    # if os.path.isfile('data_output/%s_hst_obs_hull_dict.npy' % target):
+    # if os.path.isfile('data_output/%s_hst_obs_hull_dict.pickle' % target):
     #     continue
     if target == 'ngc1510':
         continue
@@ -61,7 +59,7 @@ for target in target_list:
     if not os.path.isdir('data_output'):
         os.makedirs('data_output')
 
-    with open('data_output/%s_hst_obs_hull_dict.npy' % target, 'wb') as file_name:
+    with open('data_output/%s_hst_obs_hull_dict.pickle' % target, 'wb') as file_name:
         pickle.dump(obs_hull_dict, file_name)
 
 

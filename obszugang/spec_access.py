@@ -9,8 +9,12 @@ from astropy.wcs import WCS
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
-from TardisPipeline.readData.MUSE_WFM import get_MUSE_polyFWHM
-
+try:
+    from TardisPipeline.readData.MUSE_WFM import get_MUSE_polyFWHM
+except ImportError:
+    print('Spectroscopic analysis of MUSe data relying on the TardisPipeline is not available. '
+          'If you want to use this, clone the git repo at https://gitlab.com/francbelf/ifu-pipeline '
+          'and add package to your root directory. ')
 from obszugang import access_config, obs_info
 from werkzeugkiste import helper_func, spec_tools
 
@@ -230,32 +234,81 @@ class SpecAccess:
         # get MUSE data
         kcwi_hdu = fits.open(file_path)
 
-        # get header
-        hdr = kcwi_hdu[0].header
-        # get WCS
-        wcs_3d_kcwi = WCS(hdr)
-        wcs_2d_kcwi = wcs_3d_kcwi.celestial
+        hdr_data = kcwi_hdu[0].header
+        # hdr_stat = kcwi_hdu[1].header
 
         # get wavelength
-        wave_kcwi = hdr['CRVAL3'] + np.arange(hdr['NAXIS3']) * hdr['CDELT3']
+        wave_kcwi = (hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CDELT3']) * u.Angstrom
 
-        # get data, variance and mask cube
+        # distinguish between vacuum and air wavelength
+        # if hdr_data['CTYPE3'][:4] == 'AWAV':
+        #     vacuum = False
+        # else:
+        #     vacuum = True
+        vacuum = False
+
+        # get data and variance cube
         data_cube_kcwi = kcwi_hdu[0].data
         var_cube_kcwi = kcwi_hdu[1].data
         mask_cube_kcwi = kcwi_hdu[2].data
 
-        kcwi_hdu.close()
+        # get units of data cube and variables
+        # if hdr_data['BUNIT'] == '':
+        #     data_cube_unit = (1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom
+        #     var_cube_unit = ((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
+        # else:
+        #     data_cube_unit = u.Unit(hdr_data['BUNIT'])
+        #     var_cube_unit = u.Unit(hdr_stat['BUNIT'])
+        data_cube_unit = (1e-16) * u.erg / u.s / u.cm / u.cm / u.Angstrom
+        var_cube_unit = ((1e-16) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
 
+        # get WCS
+        wcs_3d_kcwi = WCS(hdr_data)
+        wcs_2d_kcwi = wcs_3d_kcwi.celestial
+        # close header
+        kcwi_hdu.close()
+        # add data to the class attributes
         self.kcwi_datacube_data.update({
             'wave': wave_kcwi,
+            'vacuum': vacuum,
             'data_cube': data_cube_kcwi,
             'var_cube': var_cube_kcwi,
             'mask_cube': mask_cube_kcwi,
-            'hdr': hdr,
+            'data_cube_unit': data_cube_unit,
+            'var_cube_unit': var_cube_unit,
+            'hdr': hdr_data,
             'wcs_3d': wcs_3d_kcwi,
             'wcs_2d': wcs_2d_kcwi
-
         })
+        #
+        # exit()
+        #
+        # # get header
+        # hdr = kcwi_hdu[0].header
+        # # get WCS
+        # wcs_3d_kcwi = WCS(hdr)
+        # wcs_2d_kcwi = wcs_3d_kcwi.celestial
+        #
+        # # get wavelength
+        # wave_kcwi = hdr['CRVAL3'] + np.arange(hdr['NAXIS3']) * hdr['CDELT3']
+        #
+        # # get data, variance and mask cube
+        # data_cube_kcwi = kcwi_hdu[0].data
+        # var_cube_kcwi = kcwi_hdu[1].data
+        # mask_cube_kcwi = kcwi_hdu[2].data
+        #
+        # kcwi_hdu.close()
+        #
+        # self.kcwi_datacube_data.update({
+        #     'wave': wave_kcwi,
+        #     'data_cube': data_cube_kcwi,
+        #     'var_cube': var_cube_kcwi,
+        #     'mask_cube': mask_cube_kcwi,
+        #     'hdr': hdr,
+        #     'wcs_3d': wcs_3d_kcwi,
+        #     'wcs_2d': wcs_2d_kcwi
+        #
+        # })
 
     def get_muse_obs_coverage_hull_dict(self):
         """
@@ -265,7 +318,7 @@ class SpecAccess:
         -------
         coverage_mask : dict
         """
-        with open(self.path2obs_cover_hull / ('%s_muse_obs_hull_dict.npy' % self.spec_target_name), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_muse_obs_hull_dict.pickle' % self.spec_target_name), 'rb') as file_name:
             return pickle.load(file_name)
 
     def get_kcwi_obs_coverage_hull_dict(self):
@@ -276,7 +329,7 @@ class SpecAccess:
         -------
         coverage_mask : dict
         """
-        with open(self.path2obs_cover_hull / ('%s_kcwi_obs_hull_dict.npy' % self.spec_target_name), 'rb') as file_name:
+        with open(self.path2obs_cover_hull / ('%s_kcwi_obs_hull_dict.pickle' % self.spec_target_name), 'rb') as file_name:
             return pickle.load(file_name)
 
     def check_coords_covered_by_muse(self, ra, dec, res='copt', max_dist_dist2hull_arcsec=2):
@@ -339,6 +392,7 @@ class SpecAccess:
             dec = [dec]
 
         band_hull_dict = self.get_kcwi_obs_coverage_hull_dict()
+
         coverage_mask = np.zeros(len(ra), dtype=bool)
         hull_data_ra = np.array([])
         hull_data_dec = np.array([])
@@ -410,6 +464,9 @@ class SpecAccess:
         native_wave = self.muse_datacube_data['wave_%s' % res]
         # getting line spread function
         lsf_fwhm = spec_tools.SpecHelper.get_muse_lsf_fwhm(wave = native_wave)
+
+        if sum(np.invert(np.isnan(native_spec_flx))) == 0:
+            return None
 
         # get wavelength range
         if wave_range is None:
@@ -491,32 +548,89 @@ class SpecAccess:
                                  (y_data_kcwi - obj_coords_kcwi_pix[1]) ** 2) < selection_radius_pix)
 
         # extract fluxes
-        spec_flux = np.sum(self.kcwi_datacube_data['data_cube'][:, mask_spectrum], axis=1)
-        spec_flux_err = np.sqrt(np.sum(self.kcwi_datacube_data['var_cube'][:, mask_spectrum], axis=1))
-        # rescale to the unit of 10$^{-16}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$
-        spec_flux *= 1e-16
-        spec_flux_err *= 1e-16
-        # get wavelengths
-        lam = self.kcwi_datacube_data['wave']
-        # getting line spread function
-        lsf = get_MUSE_polyFWHM(self.kcwi_datacube_data['wave'], version="udf10")
+        native_spec_flx = (np.sum(self.kcwi_datacube_data['data_cube'][:, mask_spectrum], axis=1) *
+                           self.kcwi_datacube_data['data_cube_unit'])
 
+        native_spec_flx_err = np.sqrt(np.sum(self.kcwi_datacube_data['var_cube'][:, mask_spectrum], axis=1) *
+                                      self.kcwi_datacube_data['var_cube_unit'])
+
+        # get wavelengths
+        native_wave = self.kcwi_datacube_data['wave']
+        # getting line spread function
+        lsf_fwhm = spec_tools.SpecHelper.get_kcwi_lsf_fwhm(wave=native_wave)
+
+        if sum(np.invert(np.isnan(native_spec_flx))) == 0:
+            return None
         # get wavelength range
         if wave_range is None:
-            lam_range = [np.nanmin(self.kcwi_datacube_data['wave'][np.invert(np.isnan(spec_flux))]),
-                         np.nanmax(self.kcwi_datacube_data['wave'][np.invert(np.isnan(spec_flux))])]
+            wave_range = [np.nanmin(self.kcwi_datacube_data['wave'][np.invert(np.isnan(native_spec_flx))]),
+                          np.nanmax(self.kcwi_datacube_data['wave'][np.invert(np.isnan(native_spec_flx))])]
         else:
-            lam_range = wave_range
-        # make sure wave length range is applied to all arrays
-        mask_wave_range = (lam > lam_range[0]) & (lam < lam_range[1])
-        spec_flux = spec_flux[mask_wave_range]
-        spec_flux_err = spec_flux_err[mask_wave_range]
-        lam = lam[mask_wave_range]
-        lsf = lsf[mask_wave_range]
-        good_pixel_mask = np.invert(np.isnan(spec_flux) + np.isinf(spec_flux))
+            wave_range = wave_range
 
-        return {'lam_range': lam_range, 'spec_flux': spec_flux, 'spec_flux_err': spec_flux_err, 'lam': lam,
-                'lsf': lsf, 'good_pixel_mask': good_pixel_mask, 'rad_arcsec': rad_arcsec}
+        # make sure wave length range is applied to all arrays
+        mask_wave_range = (native_wave >= wave_range[0]) & (native_wave <= wave_range[1])
+        native_spec_flx = native_spec_flx[mask_wave_range]
+        native_spec_flx_err = native_spec_flx_err[mask_wave_range]
+        # hot fix for nan errors
+        mask_problematic_err = np.isnan(native_spec_flx) + np.isinf(native_spec_flx) + np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)
+        native_spec_flx_err[mask_problematic_err] = native_spec_flx[mask_problematic_err]
+        native_wave = native_wave[mask_wave_range]
+        lsf_fwhm = lsf_fwhm[mask_wave_range]
+        native_good_pixel_mask = (np.invert(np.isnan(native_spec_flx) + np.isinf(native_spec_flx) +
+                                            np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)))
+
+        spec_dict = {
+            # general description of spectrum
+            'rad_arcsec': rad_arcsec,
+            'lsf_fwhm': lsf_fwhm,
+            # native spectrum
+            'native_wave_range': wave_range,
+            'nativ_wave_vaccum': self.kcwi_datacube_data['vacuum'],
+            'native_spec_flx': native_spec_flx,
+            'native_spec_flx_err': native_spec_flx_err,
+            'native_wave': native_wave,
+            'native_good_pixel_mask': native_good_pixel_mask,
+        }
+
+
+        # get redshift if possible
+        redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=self.spec_target_name)
+        sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
+        spec_dict.update({
+            'redshift': redshift,
+            'sys_vel': sys_vel,
+        })
+
+        return spec_dict
+        #
+        # # # extract fluxes
+        # # spec_flux = np.sum(self.kcwi_datacube_data['data_cube'][:, mask_spectrum], axis=1)
+        # # spec_flux_err = np.sqrt(np.sum(self.kcwi_datacube_data['var_cube'][:, mask_spectrum], axis=1))
+        # # # rescale to the unit of 10$^{-16}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$
+        # # spec_flux *= 1e-16
+        # # spec_flux_err *= 1e-16
+        # # # get wavelengths
+        # # lam = self.kcwi_datacube_data['wave']
+        # # # getting line spread function
+        # # lsf = get_MUSE_polyFWHM(self.kcwi_datacube_data['wave'], version="udf10")
+        #
+        # # get wavelength range
+        # if wave_range is None:
+        #     lam_range = [np.nanmin(self.kcwi_datacube_data['wave'][np.invert(np.isnan(spec_flux))]),
+        #                  np.nanmax(self.kcwi_datacube_data['wave'][np.invert(np.isnan(spec_flux))])]
+        # else:
+        #     lam_range = wave_range
+        # # make sure wave length range is applied to all arrays
+        # mask_wave_range = (lam > lam_range[0]) & (lam < lam_range[1])
+        # spec_flux = spec_flux[mask_wave_range]
+        # spec_flux_err = spec_flux_err[mask_wave_range]
+        # lam = lam[mask_wave_range]
+        # lsf = lsf[mask_wave_range]
+        # good_pixel_mask = np.invert(np.isnan(spec_flux) + np.isinf(spec_flux))
+        #
+        # return {'lam_range': lam_range, 'spec_flux': spec_flux, 'spec_flux_err': spec_flux_err, 'lam': lam,
+        #         'lsf': lsf, 'good_pixel_mask': good_pixel_mask, 'rad_arcsec': rad_arcsec}
 
     def extract_kcwi_sub_cube(self, ra, dec, cutout_size):
         """

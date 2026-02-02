@@ -5,7 +5,6 @@ import numpy as np
 from pathlib import Path
 import pickle
 from scipy.interpolate import interp1d
-
 from obszugang import obs_info
 from werkzeugkiste import phys_params
 from werkzeugkiste import helper_func
@@ -79,7 +78,7 @@ class PSFTools:
         else:
             raise KeyError('instrument not understood')
 
-        psf_dict_filename = 'hst_%s_psf_dict.npy' % instrument_str
+        psf_dict_filename = 'hst_%s_psf_dict.pickle' % instrument_str
         # now there is not an estimated PSF for every filter at the moment hence we use the closest filter available
         with open(path2psf_dict / psf_dict_filename, 'rb') as file_name:
             psf_dict = pickle.load(file_name)
@@ -163,7 +162,7 @@ class PSFTools:
 
         path2psf_dict = Path(__file__).parent.parent.resolve() / 'meta_data' / 'psf_data' / 'data_output'
 
-        psf_dict_filename = '%s_psf_dict.npy' % instrument
+        psf_dict_filename = '%s_psf_dict.pickle' % instrument
         # now there is not an estimated PSF for every filter at the moment hence we use the closest filter available
         with open(path2psf_dict / psf_dict_filename, 'rb') as file_name:
             psf_dict = pickle.load(file_name)
@@ -248,6 +247,45 @@ class PSFTools:
             raise KeyError('this band is not covered for PSF estimation or not an ASTROSAT band')
 
     @staticmethod
+    def load_custom_gauss_psf_dict(band):
+        """
+        Parameters
+        ----------
+        band : str
+            the custom gaussian band which is in this case a pseudo band
+
+
+        Returns
+        -------
+        psf_dict : dict
+
+        """
+        # get psf dict path
+        path2psf_dict = Path(__file__).parent.parent.resolve() / 'meta_data' / 'psf_data' / 'data_output'
+
+        psf_dict_filename = 'custom_gauss_psf_dict.pickle'
+        # now there is not an estimated PSF for every filter at the moment hence we use the closest filter available
+        with open(path2psf_dict / psf_dict_filename, 'rb') as file_name:
+            psf_dict = pickle.load(file_name)
+
+        return psf_dict[band]
+
+    @staticmethod
+    def get_custom_gauss_psf_fwhm(band):
+        """
+        Parameters
+        ----------
+        band : str
+
+        Returns
+        -------
+
+        """
+        psf_dict = PSFTools.load_custom_gauss_psf_dict(band=band)
+        return psf_dict['gaussian_fwhm']
+
+
+    @staticmethod
     def load_obs_psf_dict(band, instrument):
         """
         Parameters
@@ -261,11 +299,13 @@ class PSFTools:
         rad, profile : array-like
 
         """
-        assert(instrument in ['acs', 'uvis', 'ir', 'nircam', 'miri'])
+        assert(instrument in ['acs', 'uvis', 'ir', 'nircam', 'miri', 'custom_gauss'])
         if instrument in ['acs', 'uvis', 'ir']:
             return PSFTools.load_hst_psf_dict(band=band, instrument=instrument)
         elif instrument in ['nircam', 'miri']:
             return PSFTools.load_jwst_psf_dict(band=band, instrument=instrument)
+        elif instrument == 'custom_gauss':
+            return PSFTools.load_custom_gauss_psf_dict(band=band)
 
     @staticmethod
     def get_obs_psf_rad_profile(band, instrument):
@@ -274,15 +314,15 @@ class PSFTools:
 
     @staticmethod
     def get_obs_psf_fwhm(band, instrument):
-        assert(instrument in ['acs', 'uvis', 'ir', 'nircam', 'miri', 'astrosat'])
+        assert(instrument in ['acs', 'uvis', 'ir', 'nircam', 'miri', 'astrosat', 'custom_gauss'])
         if instrument in ['acs', 'uvis', 'ir']:
             return PSFTools.get_hst_psf_fwhm(band=band, instrument=instrument)
         elif instrument in ['nircam', 'miri']:
             return PSFTools.get_jwst_psf_fwhm(band=band, instrument=instrument)
+        elif instrument == 'custom_gauss':
+            return PSFTools.get_custom_gauss_psf_fwhm(band=band)
         elif instrument == 'astrosat':
             return PSFTools.get_astrosat_psf_fwhm(band=band)
-
-
 
         # psf_dict = PSFTools.load_obs_psf_dict(band=band, instrument=instrument)
         # return psf_dict['gaussian_fwhm']
@@ -339,6 +379,7 @@ class PSFTools:
         # load the EE dict
         path2psf_data = (Path(__file__).parent.parent.resolve() / 'meta_data' / 'psf_data' / 'data_output' /
                          'apert_gauss_corr')
+
         if instrument == 'acs':
             apert_gauss_corr_file_name = 'acs_wfc_apert_gauss_corr_dict.pickle'
             used_band = PSFTools.get_closest_available_hst_psf_filter(band=band, instrument=instrument)
@@ -354,6 +395,9 @@ class PSFTools:
         elif instrument == 'miri':
             apert_gauss_corr_file_name = 'miri_apert_gauss_corr_dict.pickle'
             used_band = band
+        elif instrument == 'custom_gauss':
+            apert_gauss_corr_file_name = 'custom_gauss_apert_gauss_corr_dict.pickle'
+            used_band = band
         else:
             raise KeyError(instrument, ' not understood as instrument keyword')
 
@@ -367,6 +411,9 @@ class PSFTools:
             y_bins=apert_gauss_corr_dict[used_band]['measured_std_values'],
             func_values=apert_gauss_corr_dict[used_band]['measured_flux_frac_in_apert'],
             method='cubic')
+
+        print(apert_gauss_corr_dict[used_band]['apert_radii_arcsec_list'], apert_gauss_corr_dict[used_band]['measured_std_values'])
+
 
         if std < np.min(apert_gauss_corr_dict[used_band]['measured_std_values']):
             std = np.min(apert_gauss_corr_dict[used_band]['measured_std_values'])

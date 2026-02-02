@@ -4,19 +4,17 @@ Script to compute profile fitting correction values for HST
 
 import os.path
 import pickle
-
 import numpy as np
 import matplotlib.pyplot as plt
-
-from phangs_data_access import phot_tools, phangs_info, helper_func
-
 from astropy.convolution import Gaussian2DKernel
 from astropy.convolution import convolve
+from obszugang import obs_info
+from werkzeugkiste import phot_tools, helper_func
 
 
-acs_wfc_band_list = phangs_info.acs_wfc_psf_band_list
-wfc3_uv_band_list = phangs_info.wfc3_uv_psf_band_list
-wfc3_ir_band_list = phangs_info.wfc3_ir_psf_band_list
+acs_wfc_band_list = obs_info.acs_wfc_psf_band_list
+wfc3_uv_band_list = obs_info.wfc3_uv_psf_band_list
+wfc3_ir_band_list = obs_info.wfc3_ir_psf_band_list
 
 acs_wfc_fact_img_size = 5
 wfc3_uv_fact_img_size = 5
