@@ -13,17 +13,18 @@ import matplotlib.pyplot as plt
 plot_flag = True
 
 nircam_version = 'v1p1p1'
+# nircam_version = 'v0p3p2'
 
 target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % nircam_version).keys())
 
 print(target_list)
 for target in target_list:
 
-    # target = 'ngc2835'
-
-
-    # if os.path.isfile('data_output/%s_nircam_obs_hull_dict.pickle' % target):
-    #     continue
+    if os.path.isfile('data_output/%s_nircam_obs_hull_dict_%s.pickle' % (target, nircam_version)):
+        with open('data_output/%s_nircam_obs_hull_dict_%s.pickle' % (target, nircam_version), 'rb') as file_name:
+            obs_hull_dict = pickle.load(file_name)
+    else:
+        obs_hull_dict = {}
 
     # now get nircam bands
     phangs_phot = phot_access.PhotAccess(phot_target_name=target, phot_nircam_target_name=target, nircam_data_ver=nircam_version)
@@ -36,8 +37,10 @@ for target in target_list:
 
 
 
-    obs_hull_dict = {}
     for band in band_list:
+
+        if band in obs_hull_dict.keys():
+            continue
 
         img_data = phangs_phot.jwst_bands_data['%s_data_img' % band]
         img_wcs = phangs_phot.jwst_bands_data['%s_wcs_img' % band]
@@ -47,6 +50,8 @@ for target in target_list:
         elif nircam_version == 'v2p0':
             mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
         elif nircam_version == 'v0p3':
+            mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
+        elif nircam_version == 'v0p3p2':
             mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
 
         hull_dict = helper_func.GeometryTools.contour2hull(data_array=mask_covered_pixels,
@@ -79,6 +84,9 @@ for target in target_list:
             # plt.plot(hull_dict[idx]['x_convex_hull'] - 1, hull_dict[idx]['y_convex_hull'] - 1)
 
         obs_hull_dict.update({band: hull_coord_dict})
+
+        with open('data_output/%s_nircam_obs_hull_dict_%s.pickle' % (target, nircam_version), 'wb') as file_name:
+            pickle.dump(obs_hull_dict, file_name)
 
         # plt.show()
 

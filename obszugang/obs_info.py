@@ -89,8 +89,8 @@ phangs_chandra_galaxy_list = [
 #################################################################
 #
 # which versions are available?
-nircam_available_data_versions = ['v0p2', 'v1p1p1', 'v2p0']
-miri_available_data_versions = ['v0p3', 'v1p1p1', 'v2p0']
+nircam_available_data_versions = ['v0p2', 'v1p1p1', 'v2p0', 'v0p3p2']
+miri_available_data_versions = ['v0p3', 'v1p1p1', 'v2p0', 'v0p3p2']
 astrosat_available_data_versions = ['v1p0']
 # note that HST does not have a version number as it is a rolling release
 
@@ -638,9 +638,20 @@ jwst_obs_band_dict_v0p2 = {
 }
 
 jwst_obs_band_dict_v0p3 = {
-        'ngc5194': {'nircam_observed_bands': ['F115W', 'F140M', 'F150W', 'F164N', 'F182M', 'F187N', 'F200W', 'F210M', 'F212N', 'F250M', 'F300M', 'F335M', 'F360M', 'F405N', 'F430M', 'F444W'],
-                'miri_observed_bands': []}
+        'ngc5194': {'nircam_observed_bands': ['F115W', 'F140M', 'F150W', 'F164N', 'F182M', 'F187N', 'F200W', 'F210M',
+                                              'F212N', 'F250M', 'F300M', 'F335M', 'F360M', 'F405N', 'F430M', 'F444W'],
+                    'miri_observed_bands': []}
 }
+
+jwst_obs_band_dict_v0p3p2 = {
+        'ngc5194': {'nircam_observed_bands': ['F115W', 'F140M', 'F150W', 'F164N', 'F182M', 'F187N', 'F200W', 'F210M',
+                                              'F212N', 'F250M', 'F300M', 'F335M', 'F360M', 'F405N', 'F430M', 'F444W'],
+                    'miri_observed_bands': ['F560W', 'F770W', 'F1000W', 'F1130W', 'F1280W', 'F1500W', 'F1800W',
+                                            'F2100W']}
+}
+
+
+
 
 
 # see Hassani+2024 2024ApJS..271....2H

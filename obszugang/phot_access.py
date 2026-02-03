@@ -216,7 +216,7 @@ class PhotAccess:
                        target_name)
 
         if target_name == 'ngc1068': extension = ''
-        elif (target_name == 'ngc5194') & (instrument == 'miri'): extension = ''
+        elif (target_name == 'ngc5194') & (instrument == 'miri') & (self.miri_data_ver == 'v0p2'): extension = ''
         else: extension = '_anchor'
 
         if os.path.isfile(Path(data_folder) / Path('%s_%s_lv3_%s_i2d_align_v1p1p1_ff+rscd.fits' % (target_name, instrument, band.lower()))):

@@ -7,7 +7,7 @@ import os
 import pickle
 
 from werkzeugkiste import helper_func
-from obszugang import obs_info, phot_access
+from obszugang import obs_info, phot_access, ObsTools
 import matplotlib.pyplot as plt
 from astropy.visualization import SqrtStretch, SinhStretch, LogStretch
 from astropy.visualization.mpl_normalize import ImageNormalize
@@ -17,6 +17,7 @@ from astropy.stats import sigma_clipped_stats
 plot_flag = True
 
 miri_version = 'v1p1p1'
+# miri_version = 'v0p3p2'
 
 target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % miri_version).keys())
 
@@ -31,11 +32,11 @@ for target in target_list:
     phangs_phot = phot_access.PhotAccess(phot_target_name=target, phot_miri_target_name=target, miri_data_ver=miri_version)
 
     # get band list
-    band_list = helper_func.ObsTools.get_miri_obs_band_list(target=target, version=miri_version)
+    band_list = ObsTools.get_miri_obs_band_list(target=target, version=miri_version)
 
     print(target, ' bands, available: ', band_list)
 
-    phangs_phot.load_phangs_bands(band_list=band_list)
+    phangs_phot.load_obs_bands(band_list=band_list)
 
     # for plotting...
     min_ra = 361
@@ -47,8 +48,8 @@ for target in target_list:
 
     for band in band_list:
 
-        img_data = phangs_phot.miri_bands_data['%s_data_img' % band]
-        img_wcs = phangs_phot.miri_bands_data['%s_wcs_img' % band]
+        img_data = phangs_phot.jwst_bands_data['%s_data_img' % band]
+        img_wcs = phangs_phot.jwst_bands_data['%s_wcs_img' % band]
 
         # plt.imshow(img_data)
 
@@ -57,6 +58,8 @@ for target in target_list:
         elif miri_version == 'v2p0':
             mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
         elif miri_version == 'v0p2':
+            mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
+        elif miri_version == 'v0p3p2':
             mask_covered_pixels = np.array(np.invert(np.isnan(img_data)), dtype=float)
 
 
