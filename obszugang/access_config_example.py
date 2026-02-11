@@ -27,6 +27,9 @@ phangs_config_dict = {
     'chandra_data_path': '/media/benutzer/derka_derka/data/chandra/MAIN_IMAGE_PRODUCTS',
     # X-ray access
     'radio_data_path': '/media/benutzer/derka_derka/data/radio/VLA/',
+    # JWST spectra
+    'nirspec_data_path': '/media/benutzer/derka_derka/data/jwst/',
+    'miri_mrs_data_path': '/media/benutzer/derka_derka/data/jwst/',
     # HST cluster catalog
     'phangs_hst_cluster_cat_data_path': '/home/benutzer/data/PHANGS_products/HST_catalogs',
     'phangs_hst_cluster_cat_release': 'phangs_hst_cc_dr4_cr3_public',
@@ -50,7 +53,6 @@ phangs_config_dict = {
     # MUSE data access
     'muse_data_path': '/media/benutzer/derka_derka/data/muse',
     'muse_data_ver': 'DR2.2',
-
     # KCWI data access
     'kcwi_data_path': '/media/benutzer/derka_derka/data/kcwi',
 

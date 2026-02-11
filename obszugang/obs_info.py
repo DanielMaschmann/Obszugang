@@ -650,10 +650,6 @@ jwst_obs_band_dict_v0p3p2 = {
                                             'F2100W']}
 }
 
-
-
-
-
 # see Hassani+2024 2024ApJS..271....2H
 astrosat_obs_band_dict_v1p0 = {
     'ic5332': {'observed_bands': ['F148W']},
@@ -711,6 +707,49 @@ muse_obs_res_dict = {
     'ngc5068': {'copt_res': 1.04},
     'ngc7496': {'copt_res': 0.89}
 }
+
+# JWST spectroscopy
+nirspec_obs_target_dict = {
+    'ngc5194': {
+        'NE': {
+            'karin_reduction_v1_oct2024': {
+                'file_id': 'jw03435-o004_t005',
+                'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
+        },
+        'N': {
+            'karin_reduction_v1_oct2024': {
+                'file_id': 'jw03435-o006_t010',
+                'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
+        },
+        'SE': {
+            'karin_reduction_v1_oct2024': {
+                'file_id': 'jw03435-o012_t014',
+                'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
+        },
+    },
+}
+miri_mrs_obs_target_dict = {
+    'ngc5194': {
+        'NE': {
+            'karin_reduction': {
+                'file_id': 'Arm1',
+                'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
+        },
+        'SE': {
+            'karin_reduction': {
+                'file_id': 'Arm2',
+                'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
+        },
+        'N': {
+            'karin_reduction': {
+                'file_id': 'Arm3',
+                'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
+        },
+    },
+}
+
+
+
 
 ###########################################
 ######## Value added data products ########
@@ -900,8 +939,8 @@ hst_cluster_cat_obs_band_dict = {
 ##### PSF availability #####
 ############################
 acs_wfc_psf_band_list = ['F435W', 'F475W', 'F606W', 'F625W', 'F658N', 'F775W', 'F814W', 'F850L']
-wfc3_uv_psf_band_list = ['F225W', 'F275W', 'F336W', 'F390W', 'F438W', 'F467M', 'F555W', 'F606W', 'F621M', 'F775W', 'F814W',
-                    'F850L']
+wfc3_uv_psf_band_list = ['F225W', 'F275W', 'F336W', 'F390W', 'F438W', 'F467M', 'F555W', 'F606W', 'F621M', 'F775W',
+                         'F814W', 'F850L']
 wfc3_ir_psf_band_list = ['F098M', 'F105W', 'F110W', 'F125W', 'F127M', 'F140W', 'F153M', 'F160W']
 
 

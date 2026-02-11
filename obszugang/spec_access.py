@@ -24,7 +24,7 @@ class SpecAccess:
     Access class to organize all kind of spectroscopic data available
     """
 
-    def __init__(self, spec_target_name=None):
+    def __init__(self, spec_target_name=None, nirspec_data_ver=None, miri_mrs_data_ver=None):
         """
 
         Parameters
@@ -34,13 +34,17 @@ class SpecAccess:
         """
         if spec_target_name is not None:
             spec_target_name = helper_func.FileTools.target_name_no_directions(target=spec_target_name)
-
         self.spec_target_name = spec_target_name
+
+        self.nirspec_data_ver = nirspec_data_ver
+        self.miri_mrs_data_ver = miri_mrs_data_ver
 
         # loaded data dictionaries
         self.muse_dap_map_data = {}
         self.muse_datacube_data = {}
         self.kcwi_datacube_data = {}
+        self.nirspec_datacube_data = {}
+        self.miri_mrs_datacube_data = {}
 
         # get path to observation coverage hulls
         self.path2obs_cover_hull = (Path(__file__).parent.parent.absolute() / 'meta_data' / 'obs_coverage' /
@@ -104,10 +108,6 @@ class SpecAccess:
 
         Parameters
         ----------
-        data_prod : str
-        res : str
-        ssp_model : str
-            This one is only for the copt DAPMAP data products
 
         Return
         ---------
@@ -119,6 +119,43 @@ class SpecAccess:
 
         file_name = helper_func.FileTools.target_names_no_zeros(target=self.spec_target_name).upper() + '.fits'
 
+        return file_path / file_name
+
+    def get_nirspec_data_file_name(self, region_name, grating):
+        """
+        Function to get the file name and path of the JWST nirspec observations
+        Parameters
+        ----------
+
+        Return
+        ---------
+        file_path : str
+        """
+
+        file_path = (Path(access_config.phangs_config_dict['nirspec_data_path']) / self.nirspec_data_ver)
+
+        file_name = ('%s_nirspec_%s_s3d.fits' %
+                     (obs_info.nirspec_obs_target_dict[self.spec_target_name][region_name][self.nirspec_data_ver]
+                      ['file_id'],
+                      helper_func.FileTools.get_nirspec_grating_file_name_comp(grating=grating)))
+
+        return file_path / file_name
+
+    def get_miri_mrs_data_file_name(self, region_name, channel):
+        """
+        Function to get the file name and path of the JWST miri_mrs observations
+        Parameters
+        ----------
+
+        Return
+        ---------
+        file_path : str
+        """
+
+        file_path = (Path(access_config.phangs_config_dict['miri_mrs_data_path']) / self.miri_mrs_data_ver)
+        file_name = ('%s_Level3_%s-shortmediumlong_s3d.fits' %
+                     (obs_info.miri_mrs_obs_target_dict[self.spec_target_name][region_name][self.miri_mrs_data_ver]
+                      ['file_id'], channel.lower()))
         return file_path / file_name
 
     def load_muse_dap_map(self, res='copt', ssp_model='fiducial', map_type='HA6562_FLUX'):
@@ -310,6 +347,94 @@ class SpecAccess:
         #
         # })
 
+    def load_nirspec_cube(self, region_name, grating):
+        """
+        loads nirspec data cube into the constructor
+        Parameters
+        ----------
+        region_name : str
+        grating : str
+
+        """
+        file_path = self.get_nirspec_data_file_name(region_name=region_name, grating=grating)
+        # get MUSE data
+        nirspec_hdu = fits.open(file_path)
+        # get header
+        hdr_data = nirspec_hdu['SCI'].header
+        hdr_stat = nirspec_hdu['ERR'].header
+        # get wavelength
+        wave_nirspec = ((hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CDELT3']) *
+                        u.Unit(hdr_data['CUNIT3']))
+        # get data and uncertainty cube
+        data_cube_nirspec = nirspec_hdu['SCI'].data
+        err_cube_nirspec = nirspec_hdu['ERR'].data
+        # get units of data cube and variables
+        data_cube_unit = u.Unit(hdr_data['BUNIT'])
+        err_cube_unit = u.Unit(hdr_stat['BUNIT'])
+        # get WCS
+        wcs_3d_nirspec = WCS(hdr_data)
+        wcs_2d_nirspec = wcs_3d_nirspec.celestial
+        # close header
+        nirspec_hdu.close()
+        # add data to the class attributes
+        self.nirspec_datacube_data.update({
+            region_name: {
+                'wave_%s' % grating: wave_nirspec,
+                'vacuum_%s' % grating: True,
+                'data_cube_%s' % grating: data_cube_nirspec,
+                'err_cube_%s' % grating: err_cube_nirspec,
+                'data_cube_unit_%s' % grating: data_cube_unit,
+                'err_cube_unit_%s' % grating: err_cube_unit,
+                'hdr_%s' % grating: hdr_data,
+                'wcs_3d_%s' % grating: wcs_3d_nirspec,
+                'wcs_2d_%s' % grating: wcs_2d_nirspec
+            }
+        })
+
+    def load_miri_mrs_cube(self, region_name, channel):
+        """
+        loads miri_mrs data cube into the constructor
+        Parameters
+        ----------
+        region_name : str
+        channel : str
+
+        """
+        file_path = self.get_miri_mrs_data_file_name(region_name=region_name, channel=channel)
+        # get MUSE data
+        miri_mrs_hdu = fits.open(file_path)
+        # get header
+        hdr_data = miri_mrs_hdu['SCI'].header
+        hdr_stat = miri_mrs_hdu['ERR'].header
+        # get wavelength
+        wave_miri_mrs = ((hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CDELT3']) *
+                        u.Unit(hdr_data['CUNIT3']))
+        # get data and uncertainty cube
+        data_cube_miri_mrs = miri_mrs_hdu['SCI'].data
+        err_cube_miri_mrs = miri_mrs_hdu['ERR'].data
+        # get units of data cube and variables
+        data_cube_unit = u.Unit(hdr_data['BUNIT'])
+        err_cube_unit = u.Unit(hdr_stat['BUNIT'])
+        # get WCS
+        wcs_3d_miri_mrs = WCS(hdr_data)
+        wcs_2d_miri_mrs = wcs_3d_miri_mrs.celestial
+        # close header
+        miri_mrs_hdu.close()
+        # add data to the class attributes
+        self.miri_mrs_datacube_data.update({
+            region_name: {
+                'wave_%s' % channel: wave_miri_mrs,
+                'vacuum_%s' % channel: True,
+                'data_cube_%s' % channel: data_cube_miri_mrs,
+                'err_cube_%s' % channel: err_cube_miri_mrs,
+                'data_cube_unit_%s' % channel: data_cube_unit,
+                'err_cube_unit_%s' % channel: err_cube_unit,
+                'hdr_%s' % channel: hdr_data,
+                'wcs_3d_%s' % channel: wcs_3d_miri_mrs,
+                'wcs_2d_%s' % channel: wcs_2d_miri_mrs
+            }
+        })
+
     def get_muse_obs_coverage_hull_dict(self):
         """
         Function to load the coverage dict of MUSE observations
@@ -329,10 +454,37 @@ class SpecAccess:
         -------
         coverage_mask : dict
         """
-        with open(self.path2obs_cover_hull / ('%s_kcwi_obs_hull_dict.pickle' % self.spec_target_name), 'rb') as file_name:
+        with (open(self.path2obs_cover_hull / ('%s_kcwi_obs_hull_dict.pickle' % self.spec_target_name), 'rb') as
+              file_name):
             return pickle.load(file_name)
 
-    def check_coords_covered_by_muse(self, ra, dec, res='copt', max_dist_dist2hull_arcsec=2):
+    def get_nirspec_obs_coverage_hull_dict(self):
+        """
+        Function to load the coverage dict of NIRSPEC observations
+
+        Returns
+        -------
+        coverage_mask : dict
+        """
+        with open(self.path2obs_cover_hull / ('%s_nirspec_obs_hull_dict_%s.pickle' %
+                                              (self.spec_target_name, self.nirspec_data_ver)),
+                  'rb') as file_name:
+            return pickle.load(file_name)
+
+    def get_miri_mrs_obs_coverage_hull_dict(self):
+        """
+        Function to load the coverage dict of MIRI MRS observations
+
+        Returns
+        -------
+        coverage_mask : dict
+        """
+        with open(self.path2obs_cover_hull / ('%s_miri_mrs_obs_hull_dict_%s.pickle' %
+                                              (self.spec_target_name, self.miri_mrs_data_ver)),
+                  'rb') as file_name:
+            return pickle.load(file_name)
+
+    def check_coords_covered_by_muse(self, ra, dec, res='copt', max_dist_dist2hull_arcsec=0.5):
         """
         Function to check if coordinate points are inside MUSE observation
 
@@ -372,7 +524,7 @@ class SpecAccess:
 
         return coverage_mask
 
-    def check_coords_covered_by_kcwi(self, ra, dec, max_dist_dist2hull_arcsec=2):
+    def check_coords_covered_by_kcwi(self, ra, dec, max_dist_dist2hull_arcsec=0.5):
         """
         Function to check if coordinate points are inside MUSE observation
 
@@ -412,11 +564,87 @@ class SpecAccess:
 
         return coverage_mask
 
+    def check_coords_covered_by_nirspec(self, ra, dec, region_name, grating, max_dist_dist2hull_arcsec=0.5):
+        """
+        Function to check if coordinate points are inside NIRSpec observation
 
+        Parameters
+        ----------
+        ra : float or ``np.ndarray``
+        dec : float or ``np.ndarray``
+        region_name: str
+        grating: str
+        max_dist_dist2hull_arcsec : float
 
+        Returns
+        -------
+        coverage_dict : ``np.ndarray``
+        """
 
+        if isinstance(ra, float):
+            ra = [ra]
+            dec = [dec]
 
+        band_hull_dict = self.get_nirspec_obs_coverage_hull_dict()
 
+        coverage_mask = np.zeros(len(ra), dtype=bool)
+        hull_data_ra = np.array([])
+        hull_data_dec = np.array([])
+
+        for hull_idx in band_hull_dict.keys():
+            ra_hull = band_hull_dict[region_name][grating][hull_idx]['ra']
+            dec_hull = band_hull_dict[region_name][grating][hull_idx]['dec']
+            hull_data_ra = np.concatenate([hull_data_ra, ra_hull])
+            hull_data_dec = np.concatenate([hull_data_dec, dec_hull])
+            coverage_mask += helper_func.GeometryTools.check_points_in_polygon(x_point=ra, y_point=dec,
+                                                                               x_data_hull=ra_hull,
+                                                                               y_data_hull=dec_hull)
+        coverage_mask *= helper_func.GeometryTools.flag_close_points2ensemble(
+            x_data=ra, y_data=dec, x_data_ensemble=hull_data_ra, y_data_ensemble=hull_data_dec,
+            max_dist2ensemble=max_dist_dist2hull_arcsec/3600)
+
+        return coverage_mask
+
+    def check_coords_covered_by_miri_mrs(self, ra, dec, region_name, channel, max_dist_dist2hull_arcsec=0.5):
+        """
+        Function to check if coordinate points are inside NIRSpec observation
+
+        Parameters
+        ----------
+        ra : float or ``np.ndarray``
+        dec : float or ``np.ndarray``
+        region_name: str
+        channel: str
+        max_dist_dist2hull_arcsec : float
+
+        Returns
+        -------
+        coverage_dict : ``np.ndarray``
+        """
+
+        if isinstance(ra, float):
+            ra = [ra]
+            dec = [dec]
+
+        band_hull_dict = self.get_miri_mrs_obs_coverage_hull_dict()
+
+        coverage_mask = np.zeros(len(ra), dtype=bool)
+        hull_data_ra = np.array([])
+        hull_data_dec = np.array([])
+
+        for hull_idx in band_hull_dict.keys():
+            ra_hull = band_hull_dict[region_name][channel][hull_idx]['ra']
+            dec_hull = band_hull_dict[region_name][channel][hull_idx]['dec']
+            hull_data_ra = np.concatenate([hull_data_ra, ra_hull])
+            hull_data_dec = np.concatenate([hull_data_dec, dec_hull])
+            coverage_mask += helper_func.GeometryTools.check_points_in_polygon(x_point=ra, y_point=dec,
+                                                                               x_data_hull=ra_hull,
+                                                                               y_data_hull=dec_hull)
+        coverage_mask *= helper_func.GeometryTools.flag_close_points2ensemble(
+            x_data=ra, y_data=dec, x_data_ensemble=hull_data_ra, y_data_ensemble=hull_data_dec,
+            max_dist2ensemble=max_dist_dist2hull_arcsec/3600)
+
+        return coverage_mask
 
     def extract_muse_spec_circ_app(self, ra, dec, rad_arcsec, wave_range=None, res='copt'):
         """
