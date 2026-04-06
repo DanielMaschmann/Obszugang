@@ -16,8 +16,8 @@ from astropy.stats import sigma_clipped_stats
 
 plot_flag = True
 
-miri_version = 'v1p1p1'
-# miri_version = 'v0p3p2'
+# miri_version = 'v1p1p1'
+miri_version = 'v0p3p2'
 
 target_list = list(getattr(obs_info, 'jwst_obs_band_dict_%s' % miri_version).keys())
 

@@ -45,7 +45,7 @@ phangs_jwst_treasury_1_galaxy_list = [
 phangs_jwst_treasury_2_galaxy_list = [
     'ngc0685', 'ngc1068', 'ngc1097', 'ngc1317', 'ic1954', 'ngc1511', 'ngc1546', 'ngc1559', 'ngc1637', 'ngc1808',
     'ngc1809', 'ngc1792', 'ngc2090', 'ngc2283', 'ngc2566', 'ngc2775', 'ngc2903', 'ngc2997', 'ngc3059', 'ngc3137',
-    'ngc3239', 'ngc3239', 'ngc3344', 'ngc3368', 'ngc3511', 'ngc3507', 'ngc3521', 'ngc3596', 'ngc3596', 'ngc3621',
+    'ngc3239', 'ngc3344', 'ngc3368', 'ngc3511', 'ngc3507', 'ngc3521', 'ngc3596', 'ngc3621',
     'ngc3626', 'ngc4298', 'ngc4424', 'ngc4457', 'ngc4496a', 'ngc4536', 'ngc4540', 'ngc4548', 'ngc4569', 'ngc4571',
     'ngc4579', 'ngc4654', 'ngc4689', 'ngc4694', 'ngc4694', 'ngc4731', 'ngc4781', 'ngc4826', 'ngc4941', 'ngc4951',
     'ngc5042', 'ngc5134', 'ngc5248', 'ngc5530', 'ngc5643', 'ngc6300', 'ic5273', 'ngc7456']
@@ -68,14 +68,19 @@ astrosat_add_galaxy_list = []
 full_astrosat_galaxy_list = astrosat_galaxy_list + astrosat_add_galaxy_list
 
 # TO DO add missing galaxies !!!!
-phangs_muse_galaxy_list = [
+phangs_muse_treasury_1_galaxy_list = [
     'ic5332', 'ngc0628', 'ngc1087', 'ngc1300', 'ngc1365', 'ngc1385', 'ngc1433', 'ngc1512', 'ngc1566', 'ngc1672',
     'ngc2835', 'ngc3351', 'ngc3627', 'ngc4254', 'ngc4303', 'ngc4321', 'ngc4535', 'ngc5068', 'ngc7496'
 ]
 
+phangs_muse_treasury_2_galaxy_list = [
+    'ngc1097', 'ngc2903', 'ngc5248'
+]
+phangs_muse_galaxy_list = phangs_muse_treasury_1_galaxy_list + phangs_muse_treasury_2_galaxy_list
+
 # TO DO add missing galaxies !!!!
 phangs_kcwi_galaxy_list = [
-    'ngc0628', 'ngc1087', 'ngc1300', 'ngc1385', 'ngc2835', 'ngc3239', 'ngc5068'
+    'ngc0628', 'ngc1087', 'ngc1300', 'ngc1385', 'ngc2835', 'ngc3627', 'ngc3239', 'ngc5068', 'ngc5194'
 ]
 
 phangs_chandra_galaxy_list = [
@@ -705,8 +710,135 @@ muse_obs_res_dict = {
     'ngc4321': {'copt_res': 1.16},
     'ngc4535': {'copt_res': 0.56},
     'ngc5068': {'copt_res': 1.04},
-    'ngc7496': {'copt_res': 0.89}
+    'ngc7496': {'copt_res': 0.89},
+
+
+    'ngc2903': {'copt_res': 1.0},
+    'ngc1097': {'copt_res': 1.0},
+
 }
+
+# taken from Rickards Vaught et al. 2024 (2024ApJ...966..130R)
+kcwi_obs_res_fwhm_dict = {
+    'ngc0628': {
+        'combined': {
+            'bl_large': 2.0,
+            'bl_large_err': 0.4,
+        }
+    },
+    'ngc1087': {
+        'combined': {
+            'bl_large': 1.2,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc1300': {
+        'combined': {
+            'bl_large': 1.3,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc1385': {
+        'combined': {
+            'bl_large': 1.3,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc2835': {
+        'combined': {
+            'bl_large': 1.4,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc3239': {
+        'combined': {
+            'bl_large': 0.1,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc3627': {
+        'combined': {
+            'bl_large': 1.1,
+            'bl_large_err': 0.1
+        }
+    },
+    'ngc5068': {
+        'combined': {
+            'bl_large': 1.5,
+            'bl_large_err': 0.4
+        }
+    },
+}
+
+# Keck KCWI observations
+kcwi_obs_target_dict = {
+
+    'ngc0628': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc1087': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc1300': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc1385': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc2835': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+
+    'ngc3239': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc3627': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc5068': {
+        'combined': {
+            'file_id': None,
+            'gratings': ['bl_large'],
+        }
+    },
+    'ngc5194': {
+        'NE': {
+            'file_id': 'ne',
+            'gratings': ['bl_small', 'bh3_small', 'rh1_small', 'rl7150_small', 'rl8950_small'],
+        },
+        'E': {
+            'file_id': 'e',
+            'gratings': ['bl_small', 'bh3_small', 'rh1_small', 'rl7150_small', 'rl8950_small'],
+        },
+        'SW': {
+            'file_id': 'sw',
+            'gratings': ['bl_small', 'bh3_small', 'rh1_small', 'rl7150_small', 'rl8950_small'],
+        },
+    },
+}
+
+
 
 # JWST spectroscopy
 nirspec_obs_target_dict = {
@@ -716,12 +848,12 @@ nirspec_obs_target_dict = {
                 'file_id': 'jw03435-o004_t005',
                 'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
         },
-        'N': {
+        'E': {
             'karin_reduction_v1_oct2024': {
                 'file_id': 'jw03435-o006_t010',
                 'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
         },
-        'SE': {
+        'SW': {
             'karin_reduction_v1_oct2024': {
                 'file_id': 'jw03435-o012_t014',
                 'gratings': ['G140M/F100LP', 'G235M/F170LP', 'G395M/F290LP']}
@@ -735,14 +867,14 @@ miri_mrs_obs_target_dict = {
                 'file_id': 'Arm1',
                 'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
         },
-        'SE': {
-            'karin_reduction': {
-                'file_id': 'Arm2',
-                'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
-        },
-        'N': {
+        'E': {
             'karin_reduction': {
                 'file_id': 'Arm3',
+                'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
+        },
+        'SW': {
+            'karin_reduction': {
+                'file_id': 'Arm2',
                 'channels': ['CH1', 'CH2', 'CH3', 'CH4']}
         },
     },

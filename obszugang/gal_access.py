@@ -461,3 +461,13 @@ class PhangsSampleAccess:
         mask_filter = filter_set == band
 
         return np.array(header_df['date'].to_list())[mask_filter]
+
+    def get_target_redshift(self, target):
+        """"
+        load target redshift
+        """
+        self.check_load_phangs_data_table()
+        print(self.phangs_sample_table.colnames)
+        exit()
+        mask_target = self.phangs_sample_table['name'] == target
+        return self.phangs_sample_table['aco10_phangs'][mask_target].value[0]

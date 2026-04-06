@@ -412,9 +412,6 @@ class PSFTools:
             func_values=apert_gauss_corr_dict[used_band]['measured_flux_frac_in_apert'],
             method='cubic')
 
-        print(apert_gauss_corr_dict[used_band]['apert_radii_arcsec_list'], apert_gauss_corr_dict[used_band]['measured_std_values'])
-
-
         if std < np.min(apert_gauss_corr_dict[used_band]['measured_std_values']):
             std = np.min(apert_gauss_corr_dict[used_band]['measured_std_values'])
         if std > np.max(apert_gauss_corr_dict[used_band]['measured_std_values']):

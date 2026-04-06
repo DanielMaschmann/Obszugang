@@ -10,7 +10,8 @@ from obszugang import obs_info
 from obszugang import spec_access
 import matplotlib.pyplot as plt
 
-target_list = obs_info.phangs_muse_galaxy_list
+# target_list = obs_info.phangs_muse_galaxy_list
+target_list = obs_info.phangs_muse_treasury_2_galaxy_list
 
 
 for target in target_list:
@@ -26,7 +27,8 @@ for target in target_list:
     print(target)
 
     obs_hull_dict = {}
-    for res in ['copt', 'native', '150pc', '15asec']:
+    # for res in ['copt', 'native', '150pc', '15asec']:
+    for res in ['native']:
 
         # load H-alpha muse DAP
         phangs_spec.load_muse_dap_map(res=res)
@@ -34,10 +36,15 @@ for target in target_list:
         # plt.imshow(phangs_spec.muse_dap_map_data['dap_map_data_copt_fiducial_HA6562_FLUX'])
         # plt.show()
 
-        data = phangs_spec.muse_dap_map_data['dap_map_data_copt_fiducial_HA6562_FLUX']
-        wcs = phangs_spec.muse_dap_map_data['dap_map_wcs_copt_fiducial_HA6562_FLUX']
+        print(phangs_spec.muse_dap_map_data.keys())
 
-        mask_coverage = np.array(np.invert(np.isnan( data)), dtype=float)
+
+        data = phangs_spec.muse_dap_map_data['dap_map_data_%s_HA6562_FLUX' % res]
+        wcs = phangs_spec.muse_dap_map_data['dap_map_wcs_%s_HA6562_FLUX' % res]
+
+        new_nan_data = np.zeros((data.shape[0] + 2, data.shape[1] + 2)) * np.nan
+        new_nan_data[1:-1, 1:-1] = data
+        mask_coverage = np.array(np.invert(np.isnan(new_nan_data)), dtype=float)
 
         hull_dict = helper_func.GeometryTools.contour2hull(data_array=mask_coverage, level=0, contour_index=0, n_max_rejection_vertice=100)
         print(res, ' n of hulls: ', len(hull_dict.keys()))
@@ -45,8 +52,8 @@ for target in target_list:
 
         # fig = plt.figure(figsize=(20, 20))
         # ax_img = fig.add_axes((0.05, 0.05, 0.945, 0.945), projection=wcs)
-        # ax_img.imshow(data)
-
+        # ax_img.imshow(new_nan_data)
+        # plt.show()
 
 
         # now save the hull points as coordinates
@@ -56,7 +63,7 @@ for target in target_list:
             # ax_img.plot(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
 
             # transform into coordinates
-            coordinates = wcs.pixel_to_world(hull_dict[idx]['x_convex_hull'], hull_dict[idx]['y_convex_hull'])
+            coordinates = wcs.pixel_to_world(hull_dict[idx]['x_convex_hull'] - 1, hull_dict[idx]['y_convex_hull'] - 1)
             ra = coordinates.ra.deg
             dec = coordinates.dec.deg
             hull_coord_dict.update({idx: {'ra': ra, 'dec': dec}})

@@ -15,9 +15,6 @@ plot_flag = True
 
 nirspec_data_ver = 'karin_reduction_v1_oct2024'
 
-grating = 'G140M/F100LP'
-
-
 
 target_list = list(obs_info.nirspec_obs_target_dict.keys())
 

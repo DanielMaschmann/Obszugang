@@ -15,7 +15,7 @@ except ImportError:
     print('Spectroscopic analysis of MUSe data relying on the TardisPipeline is not available. '
           'If you want to use this, clone the git repo at https://gitlab.com/francbelf/ifu-pipeline '
           'and add package to your root directory. ')
-from obszugang import access_config, obs_info
+from obszugang import access_config, obs_info, gal_access
 from werkzeugkiste import helper_func, spec_tools
 
 
@@ -68,8 +68,14 @@ class SpecAccess:
         """
 
         # get folder path
+        if self.spec_target_name in obs_info.phangs_muse_treasury_1_galaxy_list:
+            data_version = access_config.phangs_config_dict['muse_data_ver_treasury_1']
+        elif self.spec_target_name in obs_info.phangs_muse_treasury_2_galaxy_list:
+            data_version = access_config.phangs_config_dict['muse_data_ver_treasury_2']
+        else:
+            raise LookupError('The data version is not specified for this galaxy')
         file_path = (Path(access_config.phangs_config_dict['muse_data_path']) /
-                     access_config.phangs_config_dict['muse_data_ver'] / res / data_prod)
+                     data_version / res / data_prod)
         if (res == 'copt') & (data_prod == 'MUSEDAP'):
             file_path /= ssp_model
 
@@ -103,11 +109,14 @@ class SpecAccess:
 
         return file_path / file_name
 
-    def get_kcwi_data_file_name(self):
+    def get_kcwi_data_file_name(self, region_name='combined', grating='bl_large'):
         """
 
         Parameters
         ----------
+        region_name : str
+        grating : str
+
 
         Return
         ---------
@@ -115,10 +124,15 @@ class SpecAccess:
         """
 
         # get folder path
-        file_path = (Path(access_config.phangs_config_dict['kcwi_data_path']) / 'Datacubes')
+        file_path = (Path(access_config.phangs_config_dict['kcwi_data_path']) / self.spec_target_name)
 
-        file_name = helper_func.FileTools.target_names_no_zeros(target=self.spec_target_name).upper() + '.fits'
 
+        if obs_info.kcwi_obs_target_dict[self.spec_target_name][region_name]['file_id'] is None:
+            file_name = self.spec_target_name + '_' + grating + '.fits'
+        else:
+            file_name = (self.spec_target_name + '_' +
+                         obs_info.kcwi_obs_target_dict[self.spec_target_name][region_name]['file_id'] + '_' + grating +
+                         '.fits')
         return file_path / file_name
 
     def get_nirspec_data_file_name(self, region_name, grating):
@@ -262,12 +276,12 @@ class SpecAccess:
             'wcs_2d_%s' % res: wcs_2d_muse
         })
 
-    def load_kcwi_cube(self):
+    def load_kcwi_cube(self, region_name='combined', grating='bl_large'):
         """
         load kcwi cube into
 
         """
-        file_path = self.get_kcwi_data_file_name()
+        file_path = self.get_kcwi_data_file_name(region_name=region_name, grating=grating)
         # get MUSE data
         kcwi_hdu = fits.open(file_path)
 
@@ -298,6 +312,8 @@ class SpecAccess:
         #     var_cube_unit = u.Unit(hdr_stat['BUNIT'])
         data_cube_unit = (1e-16) * u.erg / u.s / u.cm / u.cm / u.Angstrom
         var_cube_unit = ((1e-16) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
+        # data_cube_unit = u.erg / u.s / u.cm / u.cm / u.Angstrom
+        # var_cube_unit = (u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
 
         # get WCS
         wcs_3d_kcwi = WCS(hdr_data)
@@ -306,16 +322,18 @@ class SpecAccess:
         kcwi_hdu.close()
         # add data to the class attributes
         self.kcwi_datacube_data.update({
-            'wave': wave_kcwi,
-            'vacuum': vacuum,
-            'data_cube': data_cube_kcwi,
-            'var_cube': var_cube_kcwi,
-            'mask_cube': mask_cube_kcwi,
-            'data_cube_unit': data_cube_unit,
-            'var_cube_unit': var_cube_unit,
-            'hdr': hdr_data,
-            'wcs_3d': wcs_3d_kcwi,
-            'wcs_2d': wcs_2d_kcwi
+            region_name: {
+                'wave_%s' % grating: wave_kcwi,
+                'vacuum_%s' % grating: vacuum,
+                'data_cube_%s' % grating: data_cube_kcwi,
+                'var_cube_%s' % grating: var_cube_kcwi,
+                'mask_cube_%s' % grating: mask_cube_kcwi,
+                'data_cube_unit_%s' % grating: data_cube_unit,
+                'var_cube_unit_%s' % grating: var_cube_unit,
+                'hdr_%s' % grating: hdr_data,
+                'wcs_3d_%s' % grating: wcs_3d_kcwi,
+                'wcs_2d_%s' % grating: wcs_2d_kcwi
+            }
         })
         #
         # exit()
@@ -408,7 +426,7 @@ class SpecAccess:
         hdr_stat = miri_mrs_hdu['ERR'].header
         # get wavelength
         wave_miri_mrs = ((hdr_data['CRVAL3'] + np.arange(hdr_data['NAXIS3']) * hdr_data['CDELT3']) *
-                        u.Unit(hdr_data['CUNIT3']))
+                         u.Unit(hdr_data['CUNIT3']))
         # get data and uncertainty cube
         data_cube_miri_mrs = miri_mrs_hdu['SCI'].data
         err_cube_miri_mrs = miri_mrs_hdu['ERR'].data
@@ -524,7 +542,7 @@ class SpecAccess:
 
         return coverage_mask
 
-    def check_coords_covered_by_kcwi(self, ra, dec, max_dist_dist2hull_arcsec=0.5):
+    def check_coords_covered_by_kcwi(self, ra, dec, region_name='combined', grating='bl_large', max_dist_dist2hull_arcsec=0.5):
         """
         Function to check if coordinate points are inside MUSE observation
 
@@ -532,6 +550,8 @@ class SpecAccess:
         ----------
         ra : float or ``np.ndarray``
         dec : float or ``np.ndarray``
+        region_name : str
+        grating : str
         max_dist_dist2hull_arcsec : float
 
         Returns
@@ -543,7 +563,7 @@ class SpecAccess:
             ra = [ra]
             dec = [dec]
 
-        band_hull_dict = self.get_kcwi_obs_coverage_hull_dict()
+        band_hull_dict = self.get_kcwi_obs_coverage_hull_dict()[region_name][grating]
 
         coverage_mask = np.zeros(len(ra), dtype=bool)
         hull_data_ra = np.array([])
@@ -585,15 +605,15 @@ class SpecAccess:
             ra = [ra]
             dec = [dec]
 
-        band_hull_dict = self.get_nirspec_obs_coverage_hull_dict()
+        band_hull_dict = self.get_nirspec_obs_coverage_hull_dict()[region_name][grating]
 
         coverage_mask = np.zeros(len(ra), dtype=bool)
         hull_data_ra = np.array([])
         hull_data_dec = np.array([])
 
         for hull_idx in band_hull_dict.keys():
-            ra_hull = band_hull_dict[region_name][grating][hull_idx]['ra']
-            dec_hull = band_hull_dict[region_name][grating][hull_idx]['dec']
+            ra_hull = band_hull_dict[hull_idx]['ra']
+            dec_hull = band_hull_dict[hull_idx]['dec']
             hull_data_ra = np.concatenate([hull_data_ra, ra_hull])
             hull_data_dec = np.concatenate([hull_data_dec, dec_hull])
             coverage_mask += helper_func.GeometryTools.check_points_in_polygon(x_point=ra, y_point=dec,
@@ -626,15 +646,15 @@ class SpecAccess:
             ra = [ra]
             dec = [dec]
 
-        band_hull_dict = self.get_miri_mrs_obs_coverage_hull_dict()
+        band_hull_dict = self.get_miri_mrs_obs_coverage_hull_dict()[region_name][channel]
 
         coverage_mask = np.zeros(len(ra), dtype=bool)
         hull_data_ra = np.array([])
         hull_data_dec = np.array([])
 
         for hull_idx in band_hull_dict.keys():
-            ra_hull = band_hull_dict[region_name][channel][hull_idx]['ra']
-            dec_hull = band_hull_dict[region_name][channel][hull_idx]['dec']
+            ra_hull = band_hull_dict[hull_idx]['ra']
+            dec_hull = band_hull_dict[hull_idx]['dec']
             hull_data_ra = np.concatenate([hull_data_ra, ra_hull])
             hull_data_dec = np.concatenate([hull_data_dec, dec_hull])
             coverage_mask += helper_func.GeometryTools.check_points_in_polygon(x_point=ra, y_point=dec,
@@ -730,7 +750,15 @@ class SpecAccess:
 
 
         # get redshift if possible
+        # phangs_access = gal_access.PhangsSampleAccess()
+        # phangs_access.get_target_redshift(target=self.spec_target_name)
         redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=self.spec_target_name)
+
+        # import urllib3
+        # try:
+        # except urllib3.exceptions.ReadTimeoutError:
+        #     print('lol')
+        #     exit()
         sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
         spec_dict.update({
             'redshift': redshift,
@@ -739,7 +767,7 @@ class SpecAccess:
 
         return spec_dict
 
-    def extract_kcwi_spec_circ_app(self, ra, dec, rad_arcsec, wave_range=None):
+    def extract_kcwi_spec_circ_app(self, ra, dec, rad_arcsec, region_name='combined', grating='bl_large', wave_range=None):
         """
 
         Parameters
@@ -747,6 +775,8 @@ class SpecAccess:
         ra, dec : float
         rad_arcsec : float
             radius in arcseconds
+        region_name : str
+        grating : str
         wave_range : tuple or None
 
         Return
@@ -757,42 +787,46 @@ class SpecAccess:
         """
 
         # make sure kcwi cube is loaded
-        if 'data_cube' not in self.kcwi_datacube_data.keys():
-            self.load_kcwi_cube()
+        if region_name not in self.kcwi_datacube_data.keys():
+            self.load_kcwi_cube(region_name=region_name, grating=grating)
+        else:
+            if 'data_cube_%s' % grating not in self.kcwi_datacube_data[region_name].keys():
+                self.load_kcwi_cube(region_name=region_name, grating=grating)
 
         # get select spectra from coordinates
         obj_coords_world = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
-        obj_coords_kcwi_pix = self.kcwi_datacube_data['wcs_2d'].world_to_pixel(obj_coords_world)
+        obj_coords_kcwi_pix = self.kcwi_datacube_data[region_name]['wcs_2d_%s' % grating].world_to_pixel(obj_coords_world)
         selection_radius_pix = helper_func.CoordTools.transform_world2pix_scale(
-            length_in_arcsec=rad_arcsec, wcs=self.kcwi_datacube_data['wcs_2d'], dim=0)
+            length_in_arcsec=rad_arcsec, wcs=self.kcwi_datacube_data[region_name]['wcs_2d_%s' % grating], dim=0)
 
         # select spaxels which are inside the selected radius
-        x_lin_kcwi = np.linspace(1, self.kcwi_datacube_data['data_cube'].shape[2],
-                                 self.kcwi_datacube_data['data_cube'].shape[2])
-        y_lin_kcwi = np.linspace(1, self.kcwi_datacube_data['data_cube'].shape[1],
-                                 self.kcwi_datacube_data['data_cube'].shape[1])
+        x_lin_kcwi = np.linspace(1, self.kcwi_datacube_data[region_name]['data_cube_%s' % grating].shape[2],
+                                 self.kcwi_datacube_data[region_name]['data_cube_%s' % grating].shape[2])
+        y_lin_kcwi = np.linspace(1, self.kcwi_datacube_data[region_name]['data_cube_%s' % grating].shape[1],
+                                 self.kcwi_datacube_data[region_name]['data_cube_%s' % grating].shape[1])
         x_data_kcwi, y_data_kcwi = np.meshgrid(x_lin_kcwi, y_lin_kcwi)
         mask_spectrum = (np.sqrt((x_data_kcwi - obj_coords_kcwi_pix[0]) ** 2 +
                                  (y_data_kcwi - obj_coords_kcwi_pix[1]) ** 2) < selection_radius_pix)
 
         # extract fluxes
-        native_spec_flx = (np.sum(self.kcwi_datacube_data['data_cube'][:, mask_spectrum], axis=1) *
-                           self.kcwi_datacube_data['data_cube_unit'])
+        native_spec_flx = (
+                np.sum(self.kcwi_datacube_data[region_name]['data_cube_%s' % grating][:, mask_spectrum], axis=1) *
+                self.kcwi_datacube_data[region_name]['data_cube_unit_%s' % grating])
 
-        native_spec_flx_err = np.sqrt(np.sum(self.kcwi_datacube_data['var_cube'][:, mask_spectrum], axis=1) *
-                                      self.kcwi_datacube_data['var_cube_unit'])
+        native_spec_flx_err = np.sqrt(np.sum(self.kcwi_datacube_data[region_name]['var_cube_%s' % grating][:, mask_spectrum], axis=1) *
+                                      self.kcwi_datacube_data[region_name]['var_cube_unit_%s' % grating])
 
         # get wavelengths
-        native_wave = self.kcwi_datacube_data['wave']
+        native_wave = self.kcwi_datacube_data[region_name]['wave_%s' % grating]
         # getting line spread function
-        lsf_fwhm = spec_tools.SpecHelper.get_kcwi_lsf_fwhm(wave=native_wave)
+        lsf_fwhm = spec_tools.SpecHelper.get_kcwi_lsf_fwhm(wave=native_wave, grating=grating)
 
         if sum(np.invert(np.isnan(native_spec_flx))) == 0:
             return None
         # get wavelength range
         if wave_range is None:
-            wave_range = [np.nanmin(self.kcwi_datacube_data['wave'][np.invert(np.isnan(native_spec_flx))]),
-                          np.nanmax(self.kcwi_datacube_data['wave'][np.invert(np.isnan(native_spec_flx))])]
+            wave_range = [np.nanmin(self.kcwi_datacube_data[region_name]['wave_%s' % grating][np.invert(np.isnan(native_spec_flx))]),
+                          np.nanmax(self.kcwi_datacube_data[region_name]['wave_%s' % grating][np.invert(np.isnan(native_spec_flx))])]
         else:
             wave_range = wave_range
 
@@ -814,7 +848,7 @@ class SpecAccess:
             'lsf_fwhm': lsf_fwhm,
             # native spectrum
             'native_wave_range': wave_range,
-            'nativ_wave_vaccum': self.kcwi_datacube_data['vacuum'],
+            'nativ_wave_vaccum': self.kcwi_datacube_data[region_name]['vacuum_%s' % grating],
             'native_spec_flx': native_spec_flx,
             'native_spec_flx_err': native_spec_flx_err,
             'native_wave': native_wave,
@@ -1021,4 +1055,65 @@ class SpecAccess:
 
         return {'lam_range': lam_range, 'spec_flux': np.array(spec_flux), 'spec_flux_err': np.array(spec_flux_err), 'lam': np.array(lam),
                 'lsf': np.array(lsf), 'good_pixel_mask': np.array(good_pixel_mask), 'fwhm_arcsec': fwhm_arcsec}
+
+    def extract_miri_mrs_spec_circ_app(self, ra, dec, rad_arcsec, region_name, channel):
+        """
+
+        Parameters
+        ----------
+        ra, dec : float
+        rad_arcsec : float
+            radius in arcseconds
+        region_name : str
+        channel : str
+
+        Return
+        ---------
+        spec_dict : dict
+            Dictionary with all spectra related values, including a ln rebinned spectrum
+        """
+
+        # make sure miri mrs cube is loaded
+        if region_name not in self.miri_mrs_datacube_data.keys():
+            self.load_miri_mrs_cube(region_name=region_name, channel=channel)
+        else:
+            if 'data_cube_%s' % channel not in self.miri_mrs_datacube_data[region_name].keys():
+                self.load_miri_mrs_cube(region_name=region_name, channel=channel)
+
+        # get select spectra from coordinates
+        obj_coords_world = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
+        obj_coords_miri_mrs_pix = self.miri_mrs_datacube_data[region_name]['wcs_2d_%s' % channel].world_to_pixel(obj_coords_world)
+        selection_radius_pix = helper_func.CoordTools.transform_world2pix_scale(
+            length_in_arcsec=rad_arcsec, wcs=self.miri_mrs_datacube_data[region_name]['wcs_2d_%s' % channel])
+        # select spaxels which are inside the selected radius
+        x_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[2],
+                                 self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[2])
+        y_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[1],
+                                 self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[1])
+        x_data_miri_mrs, y_data_miri_mrs = np.meshgrid(x_lin_miri_mrs, y_lin_miri_mrs)
+        mask_spectrum = (np.sqrt((x_data_miri_mrs - obj_coords_miri_mrs_pix[0]) ** 2 +
+                                 (y_data_miri_mrs - obj_coords_miri_mrs_pix[1]) ** 2) < selection_radius_pix)
+
+        # extract fluxes
+        native_spec_flx = (np.sum(self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel][:, mask_spectrum], axis=1) *
+                           self.miri_mrs_datacube_data[region_name]['data_cube_unit_%s' % channel])
+
+        native_spec_flx_err = np.sqrt(np.sum(self.miri_mrs_datacube_data[region_name]['err_cube_%s' % channel][:, mask_spectrum], axis=1) *
+                                      self.miri_mrs_datacube_data[region_name]['err_cube_unit_%s' % channel])
+
+        # get wavelengths
+        native_wave = self.miri_mrs_datacube_data[region_name]['wave_%s' % channel]
+
+        spec_dict = {
+            # general description of spectrum
+            'rad_arcsec': rad_arcsec,
+            # native spectrum
+            'nativ_wave_vaccum': self.miri_mrs_datacube_data[region_name]['vacuum_%s' % channel],
+            'native_spec_flx': native_spec_flx,
+            'native_spec_flx_err': native_spec_flx_err,
+            'native_wave': native_wave,
+        }
+
+        return spec_dict
+
 
