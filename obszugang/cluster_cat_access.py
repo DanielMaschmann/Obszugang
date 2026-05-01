@@ -7,7 +7,7 @@ import numpy as np
 from astropy.table import Table, hstack
 import astropy.units as u
 from werkzeugkiste import helper_func
-from obszugang import obs_info, access_config
+from obszugang import obs_info, access_config, ObsTools
 from obszugang.gal_access import PhangsSampleAccess
 from obszugang.phot_access import PhotAccess
 from obszugang.gas_access import GasAccess
@@ -407,7 +407,7 @@ class ClusterCatAccess:
         Flux in a specific band [unit is mJy]
         """
         self.check_load_hst_cluster_cat(target=target, classify=classify, cluster_class=cluster_class)
-        band = helper_func.ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
+        band = ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
         return np.array(self.hst_cc_data[str(target) + '_' + classify + '_' + cluster_class]
                         ['PHANGS_%s_mJy' % band.upper()])
 
@@ -416,7 +416,7 @@ class ClusterCatAccess:
         Uncertainty of flux in a specific band [unit is mJy]
         """
         self.check_load_hst_cluster_cat(target=target, classify=classify, cluster_class=cluster_class)
-        band = helper_func.ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
+        band = ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
         return np.array(self.hst_cc_data[str(target) + '_' + classify + '_' + cluster_class]
                         ['PHANGS_%s_mJy_ERR' % band.upper()])
 
@@ -443,7 +443,7 @@ class ClusterCatAccess:
         magnitude [unit is Vega mag]
         """
         self.check_load_hst_cluster_cat(target=target, classify=classify, cluster_class=cluster_class)
-        band = helper_func.ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
+        band = ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
         return np.array(self.hst_cc_data[str(target) + '_' + classify + '_' + cluster_class]
                         ['PHANGS_%s_VEGA' % band.upper()])
 
@@ -453,7 +453,7 @@ class ClusterCatAccess:
         this is also valid for AB magnitudes [unit is mag]
         """
         self.check_load_hst_cluster_cat(target=target, classify=classify, cluster_class=cluster_class)
-        band = helper_func.ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
+        band = ObsTools.filter_name2hst_band(target=target, filter_name=filter_name)
         return np.array(self.hst_cc_data[str(target) + '_' + classify + '_' + cluster_class]
                         ['PHANGS_%s_VEGA_ERR' % band.upper()])
 
@@ -680,40 +680,40 @@ class ClusterCatAccess:
                         np.concatenate([mask_hst_broad_band_covered,
                                         phangs_phot.check_coords_covered_by_telescope(
                                             telescope='hst', ra=ra_, dec=dec_, band_list=
-                                            helper_func.ObsTools.get_hst_obs_broad_band_list(
+                                            ObsTools.get_hst_obs_broad_band_list(
                                                 target=
                                                 helper_func.FileTools.target_name_no_directions(target=galaxy_name)))]))
-                    if helper_func.ObsTools.check_hst_ha_obs(
+                    if ObsTools.check_hst_ha_obs(
                             target=galaxy_name):
                         mask_hst_ha_covered = (
                             np.concatenate([mask_hst_ha_covered,
                                             phangs_phot.check_coords_covered_by_telescope(
                                                 telescope='hst', ra=ra_, dec=dec_, band_list=
-                                                [helper_func.ObsTools.get_hst_ha_band(
+                                                [ObsTools.get_hst_ha_band(
                                                     target=galaxy_name)])]))
                     else:
                         mask_hst_ha_covered = np.concatenate([mask_hst_ha_covered, np.zeros(len(ra_), dtype=bool)])
 
-                    if helper_func.ObsTools.check_nircam_obs(
+                    if ObsTools.check_nircam_obs(
                             target=helper_func.FileTools.target_name_no_directions(target=galaxy_name)):
                         mask_nircam_covered = (
                             np.concatenate([mask_nircam_covered,
                                             phangs_phot.check_coords_covered_by_telescope(
                                                 telescope='nircam', ra=ra_, dec=dec_, band_list=
-                                                helper_func.ObsTools.get_nircam_obs_band_list(
+                                                ObsTools.get_nircam_obs_band_list(
                                                     target=
                                                     helper_func.FileTools.target_name_no_directions(target=galaxy_name),
                                                 version=nircam_data_ver))]))
                     else:
                         mask_nircam_covered = np.concatenate([mask_nircam_covered, np.zeros(len(ra_), dtype=bool)])
 
-                    if helper_func.ObsTools.check_miri_obs(
+                    if ObsTools.check_miri_obs(
                             target=helper_func.FileTools.target_name_no_directions(target=galaxy_name)):
                         mask_miri_covered = (
                             np.concatenate([mask_miri_covered,
                                             phangs_phot.check_coords_covered_by_telescope(
                                                 telescope='miri', ra=ra_, dec=dec_, band_list=
-                                                helper_func.ObsTools.get_miri_obs_band_list(
+                                                ObsTools.get_miri_obs_band_list(
                                                     target=
                                                     helper_func.FileTools.target_name_no_directions(target=
                                                                                                     galaxy_name),
@@ -721,13 +721,13 @@ class ClusterCatAccess:
                     else:
                         mask_miri_covered = np.concatenate([mask_miri_covered, np.zeros(len(ra_), dtype=bool)])
 
-                    if helper_func.ObsTools.check_astrosat_obs(
+                    if ObsTools.check_astrosat_obs(
                             target=helper_func.FileTools.target_name_no_directions(target=galaxy_name)):
                         mask_astrosat_covered = (
                             np.concatenate([mask_astrosat_covered,
                                             phangs_phot.check_coords_covered_by_telescope(
                                                 telescope='astrosat', ra=ra_, dec=dec_, band_list=
-                                                helper_func.ObsTools.get_astrosat_obs_band_list(
+                                                ObsTools.get_astrosat_obs_band_list(
                                                     target=
                                                     helper_func.FileTools.target_name_no_directions(target=
                                                                                                     galaxy_name),
@@ -735,7 +735,7 @@ class ClusterCatAccess:
                     else:
                         mask_astrosat_covered = np.concatenate([mask_astrosat_covered, np.zeros(len(ra_), dtype=bool)])
 
-                    if helper_func.ObsTools.check_muse_obs(
+                    if ObsTools.check_muse_obs(
                             target=helper_func.FileTools.target_name_no_directions(target=galaxy_name)):
                         mask_muse_covered = (
                             np.concatenate([mask_muse_covered,
@@ -743,7 +743,7 @@ class ClusterCatAccess:
                     else:
                         mask_muse_covered = np.concatenate([mask_muse_covered, np.zeros(len(ra_), dtype=bool)])
 
-                    if helper_func.ObsTools.check_alma_obs(
+                    if ObsTools.check_alma_obs(
                             target=helper_func.FileTools.target_name_no_directions(target=galaxy_name)):
                         mask_alma_covered = (
                             np.concatenate([mask_alma_covered,
