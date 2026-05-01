@@ -4,7 +4,12 @@ create all needed data for the HST PSFs
 import numpy as np
 import os
 from astropy.io import fits
-from phangs_data_access import phot_tools, phot_access, helper_func, sample_access, phangs_info
+# from phangs_data_access import phot_tools, phot_access, helper_func, sample_access, phangs_info
+
+from obszugang import PhangsSampleAccess, obs_info
+from sternenfabrik import StarFactory
+from werkzeugkiste import helper_func, phot_tools
+
 import matplotlib.pyplot as plt
 import pickle
 from astropy.visualization import SqrtStretch, SinhStretch, LogStretch
@@ -12,7 +17,7 @@ from astropy.visualization.mpl_normalize import ImageNormalize
 from astropy.stats import sigma_clipped_stats
 
 
-phangs_sample = sample_access.SampleAccess()
+phangs_sample = PhangsSampleAccess()
 
 # parameters needed for procedure
 min_power_pc = 2
@@ -34,6 +39,9 @@ print('pixscales_pc ', compute_pix_scales_pc)
 print('pixscales_sig ', compute_pix_scales_sig)
 
 flux_unit = 'mJy'
+nircam_data_ver = 'v1p1p1'
+miri_data_ver = 'v1p1p1'
+
 
 # hst_target_list = list(phangs_info.hst_obs_band_dict.keys())
 # jwst_target_list = list(phangs_info.jwst_obs_band_dict.keys())
@@ -41,19 +49,21 @@ flux_unit = 'mJy'
 # target_list = np.unique(hst_target_list + jwst_target_list)
 
 # target_list = list(phangs_info.jwst_obs_band_dict.keys())
-target_list = phangs_info.phangs_treasury_jwst_galaxy_list
+target_list = obs_info.phangs_jwst_treasury_1_galaxy_list
 
 recompute_pc_flag = False
 recompute_sig_flag = True
 
 for target in target_list:
+    # target = 'ngc4254'
     print(target)
 
     # getting the distance
     distance_mpc = phangs_sample.get_target_dist(target=helper_func.FileTools.target_name_no_directions(target))
 
     # initialize data access
-    phangs_phot = phot_access.PhotAccess(phot_target_name=target)
+    phangs_phot = StarFactory(phot_nircam_target_name=target, phot_miri_target_name=target,
+                              nircam_data_ver=nircam_data_ver, miri_data_ver=miri_data_ver)
 
     # hst_band_list = helper_func.ObsTools.get_hst_obs_band_list(target=phangs_phot.phot_hst_target_name)
     # nircam_band_list = helper_func.ObsTools.get_nircam_obs_band_list(target=phangs_phot.phot_nircam_target_name)
@@ -418,10 +428,10 @@ for target in target_list:
 
         print(miri_band)
         # load data
-        phangs_phot.load_phangs_bands(band_list=[miri_band], flux_unit=flux_unit)
-        img = phangs_phot.miri_bands_data['%s_data_img' % miri_band]
-        header = phangs_phot.miri_bands_data['%s_header_img' % miri_band]
-        wcs = phangs_phot.miri_bands_data['%s_wcs_img' % miri_band]
+        phangs_phot.load_obs_bands(band_list=[miri_band], flux_unit=flux_unit)
+        img = phangs_phot.jwst_bands_data['%s_data_img' % miri_band]
+        header = phangs_phot.jwst_bands_data['%s_header_img' % miri_band]
+        wcs = phangs_phot.jwst_bands_data['%s_wcs_img' % miri_band]
         # get the smallest dimension of the data
         min_dim_img = np.min([header['NAXIS1'], header['NAXIS2']])
         # get pixel scale of data
@@ -472,8 +482,8 @@ for target in target_list:
         if recompute_pc_flag:
             skip_compute_pc_flag = False
         for pc_scale in pix_scales_pc:
-            file_path = phangs_phot.get_phangs_band_pc_scale_map_filepath(pc_scale=pc_scale, band=miri_band, obs='miri',
-                                                                          flux_unit=flux_unit)
+            file_path = phangs_phot.get_obs_band_pc_scale_map_filepath(
+                pc_scale=pc_scale, band=miri_band, obs='jwst', instrument='miri', flux_unit=flux_unit)
             if not os.path.isfile(file_path):
                 skip_compute_pc_flag *= False
 
@@ -490,8 +500,8 @@ for target in target_list:
                 hdu = fits.PrimaryHDU(data=scale, header=wcs.to_header())
                 hdul = fits.HDUList([hdu])
 
-                file_path = phangs_phot.get_phangs_band_pc_scale_map_filepath(pc_scale=pc_scale, band=miri_band, obs='miri',
-                                                                              flux_unit=flux_unit)
+                file_path = phangs_phot.get_obs_band_pc_scale_map_filepath(
+                    pc_scale=pc_scale, band=miri_band, obs='jwst', instrument='miri', flux_unit=flux_unit)
                 if not os.path.isdir(file_path.parent): os.makedirs(file_path.parent)
                 print(file_path)
                 hdul.writeto(file_path, overwrite=True)
@@ -502,8 +512,8 @@ for target in target_list:
         if recompute_sig_flag:
             skip_compute_sig_flag = False
         for sig_scale in pix_scales_sig:
-            file_path = phangs_phot.get_phangs_band_sig_scale_map_filepath(sig_scale=sig_scale, band=miri_band, obs='miri',
-                                                                          flux_unit=flux_unit)
+            file_path = phangs_phot.get_obs_band_sig_scale_map_filepath(
+                sig_scale=sig_scale, band=miri_band, obs='jwst', instrument='miri', flux_unit=flux_unit)
             if not os.path.isfile(file_path):
                 skip_compute_sig_flag *= False
         if not skip_compute_sig_flag:
@@ -519,8 +529,8 @@ for target in target_list:
                 hdu = fits.PrimaryHDU(data=scale, header=wcs.to_header())
                 hdul = fits.HDUList([hdu])
 
-                file_path = phangs_phot.get_phangs_band_sig_scale_map_filepath(sig_scale=sig_scale, band=miri_band, obs='miri',
-                                                                               flux_unit=flux_unit)
+                file_path = phangs_phot.get_obs_band_sig_scale_map_filepath(
+                    sig_scale=sig_scale, band=miri_band, obs='jwst', instrument='miri', flux_unit=flux_unit)
                 if not os.path.isdir(file_path.parent): os.makedirs(file_path.parent)
                 print(file_path)
                 hdul.writeto(file_path, overwrite=True)
@@ -543,8 +553,6 @@ for target in target_list:
         print('n_rows_sig ', n_rows_sig)
 
         if not skip_compute_pc_flag:
-
-
             fig_pc, axs_pc = plt.subplots(ncols=n_cols_pc, nrows=n_rows_pc,
                                           figsize=(fig_size_individual[0] * n_cols_pc, fig_size_individual[1] * n_rows_pc))
 
@@ -641,5 +649,6 @@ for target in target_list:
             plt.cla()
 
 
+    # exit()
 
 

@@ -1053,6 +1053,8 @@ class PhotAccess:
         hull_data_ra = np.array([])
         hull_data_dec = np.array([])
 
+        # print('band_hull_dict ', band_hull_dict.keys())
+
         for hull_idx in band_hull_dict[band].keys():
             ra_hull = band_hull_dict[band][hull_idx]['ra']
             dec_hull = band_hull_dict[band][hull_idx]['dec']
@@ -1127,33 +1129,49 @@ class PhotAccess:
         wcs_dss = WCS(paths_dss[0][0].header)
         return data_dss, wcs_dss
 
-    def get_phangs_band_pc_scale_map_filepath(self, pc_scale, band, obs, flux_unit='mJy'):
-        target_name = getattr(self, 'phot_%s_target_name' % obs)
+    def get_obs_band_pc_scale_map_filepath(self, pc_scale, band, obs, instrument, flux_unit='mJy'):
+        if obs in ['hst', 'astrosat']:
+            target_name = getattr(self, 'phot_%s_target_name' % obs)
+        elif obs == 'jwst':
+            target_name = getattr(self, 'phot_%s_target_name' % instrument)
+        else:
+            raise KeyError(' obs name not understand')
 
         path2scale_map = Path(access_config.phangs_config_dict['scale_decomposition_path']) / target_name /  obs
 
         file_name = 'scale_map_%i_pc_%s_%s_flux_unit_%s.fits' % (pc_scale, target_name, band, flux_unit.replace('/', '_'))
         return path2scale_map / file_name
 
-    def get_phangs_band_sig_scale_map_filepath(self, sig_scale, band, obs, flux_unit='mJy'):
-        target_name = getattr(self, 'phot_%s_target_name' % obs)
+    def get_obs_band_sig_scale_map_filepath(self, sig_scale, band, obs, instrument, flux_unit='mJy'):
+        if obs in ['hst', 'astrosat']:
+            target_name = getattr(self, 'phot_%s_target_name' % obs)
+        elif obs == 'jwst':
+            target_name = getattr(self, 'phot_%s_target_name' % instrument)
+        else:
+            raise KeyError(' obs name not understand')
 
         path2scale_map = Path(access_config.phangs_config_dict['scale_decomposition_path']) / target_name /  obs
 
         file_name = 'scale_map_%i_sig_%s_%s_flux_unit_%s.fits' % (sig_scale, target_name, band, flux_unit.replace('/', '_'))
         return path2scale_map / file_name
 
-    def get_phangs_band_pc_scale_map(self, pc_scale, band, obs, flux_unit='mJy'):
-        file_name = self.get_phangs_band_pc_scale_map_filepath(pc_scale=pc_scale, band=band, obs=obs,
-                                                            flux_unit=flux_unit)
+    def get_obs_band_pc_scale_map(self, pc_scale, band,obs, instrument, flux_unit='mJy'):
+        file_name = self.get_obs_band_pc_scale_map_filepath(pc_scale=pc_scale, band=band, obs=obs,
+                                                            instrument=instrument, flux_unit=flux_unit)
         scale_data, scale_header, scale_wcs = helper_func.FileTools.load_img(file_name=file_name)
         return scale_data, scale_header, scale_wcs
 
-    def get_phangs_band_sig_scale_map(self, sig_scale, band, obs, flux_unit='mJy'):
-        file_name = self.get_phangs_band_sig_scale_map_filepath(sig_scale=sig_scale, band=band, obs=obs,
-                                                            flux_unit=flux_unit)
+    def get_obs_band_sig_scale_map(self, sig_scale, band,obs, instrument, flux_unit='mJy'):
+        file_name = self.get_obs_band_sig_scale_map_filepath(sig_scale=sig_scale, band=band, obs=obs,
+                                                             instrument=instrument, flux_unit=flux_unit)
         scale_data, scale_header, scale_wcs = helper_func.FileTools.load_img(file_name=file_name)
         return scale_data, scale_header, scale_wcs
+
+
+
+
+
+
 
     def compute_apert_photometry(self, ra, dec, band, obs, flux_unit='mJy'):
 

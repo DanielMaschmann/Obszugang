@@ -702,8 +702,11 @@ class SpecAccess:
                                  (y_data_muse - obj_coords_muse_pix[1]) ** 2) < selection_radius_pix)
 
         # extract fluxes
-        native_spec_flx = (np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1) *
-                           self.muse_datacube_data['data_cube_unit_%s' % res])
+        # native_spec_flx = (np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1) *
+        #                    self.muse_datacube_data['data_cube_unit_%s' % res])
+
+        native_spec_flx = np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1)
+        # var_sum = np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1)
 
         native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1) *
                                       self.muse_datacube_data['var_cube_unit_%s' % res])
@@ -752,18 +755,18 @@ class SpecAccess:
         # get redshift if possible
         # phangs_access = gal_access.PhangsSampleAccess()
         # phangs_access.get_target_redshift(target=self.spec_target_name)
-        redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=self.spec_target_name)
-
-        # import urllib3
-        # try:
-        # except urllib3.exceptions.ReadTimeoutError:
-        #     print('lol')
-        #     exit()
-        sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
-        spec_dict.update({
-            'redshift': redshift,
-            'sys_vel': sys_vel,
-        })
+        # redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=self.spec_target_name)
+        #
+        # # import urllib3
+        # # try:
+        # # except urllib3.exceptions.ReadTimeoutError:
+        # #     print('lol')
+        # #     exit()
+        # sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
+        # spec_dict.update({
+        #     'redshift': redshift,
+        #     'sys_vel': sys_vel,
+        # })
 
         return spec_dict
 

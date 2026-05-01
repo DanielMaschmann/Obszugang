@@ -89,6 +89,7 @@ phangs_chandra_galaxy_list = [
 ]
 
 
+
 #################################################################
 ##### specific observation available for individual targets #####
 #################################################################
@@ -839,7 +840,6 @@ kcwi_obs_target_dict = {
 }
 
 
-
 # JWST spectroscopy
 nirspec_obs_target_dict = {
     'ngc5194': {
@@ -860,6 +860,7 @@ nirspec_obs_target_dict = {
         },
     },
 }
+
 miri_mrs_obs_target_dict = {
     'ngc5194': {
         'NE': {
