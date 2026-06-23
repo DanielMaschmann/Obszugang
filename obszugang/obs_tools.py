@@ -602,6 +602,10 @@ class ObsTools:
                                   target_name=target_name, hst_target_name=hst_target_name,
                                   nircam_target_name=nircam_target_name, miri_target_name=miri_target_name,
                                   astrosat_target_name=astrosat_target_name,))
+        print('band_list ', band_list)
+        print('hst_band_list ', hst_band_list)
+        print('obs_list ', obs_list)
+        print('instrument_list ', instrument_list)
 
         obs_dict = {}
 
@@ -615,9 +619,15 @@ class ObsTools:
             if sum(mask_acs) > 0:
                 obs_dict.update({'hst': {'acs': list(np.array(band_list)[mask_acs])}})
             if sum(mask_uvis) > 0:
-                obs_dict.update({'hst': {'uvis': list(np.array(band_list)[mask_uvis])}})
+                if 'hst' in obs_dict.keys():
+                    obs_dict['hst'].update({'uvis': list(np.array(band_list)[mask_uvis])})
+                else:
+                    obs_dict.update({'hst': {'uvis': list(np.array(band_list)[mask_uvis])}})
             if sum(mask_ir) > 0:
-                obs_dict.update({'hst': {'ir': list(np.array(band_list)[mask_ir])}})
+                if 'hst' in obs_dict.keys():
+                    obs_dict['hst'].update({'ir': list(np.array(band_list)[mask_ir])})
+                else:
+                    obs_dict.update({'hst': {'ir': list(np.array(band_list)[mask_ir])}})
 
         if include_nircam & (len(nircam_band_list) > 0):
             obs_dict.update({'jwst': {'nircam': nircam_band_list}})

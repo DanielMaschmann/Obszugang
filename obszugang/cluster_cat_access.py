@@ -12,7 +12,7 @@ from obszugang.gal_access import PhangsSampleAccess
 from obszugang.phot_access import PhotAccess
 from obszugang.gas_access import GasAccess
 from obszugang.spec_access import SpecAccess
-
+from sternenstaub.dust_tools import DustTools
 
 class ClusterCatAccess:
     """
@@ -319,7 +319,7 @@ class ClusterCatAccess:
         Dust attenuation measured in A_v [unit mag]
         """
         ebv_values = self.get_hst_cc_ebv(target=target, classify=classify, cluster_class=cluster_class)
-        return dust_tools.DustTools.ebv2av(ebv=ebv_values)
+        return DustTools.ebv2av(ebv=ebv_values)
 
     def get_hst_cc_ir4_age(self, target, classify='human', cluster_class='class12'):
         """
@@ -369,7 +369,7 @@ class ClusterCatAccess:
         Dust attenuation measured in A_v estimation without decision tree [unit mag]
         """
         ebv_values = self.get_hst_cc_ir4_ebv(target=target, classify=classify, cluster_class=cluster_class)
-        return dust_tools.DustTools.ebv2av(ebv=ebv_values)
+        return DustTools.ebv2av(ebv=ebv_values)
 
     def get_hst_cc_ci(self, target, classify='human', cluster_class='class12'):
         """
@@ -1134,6 +1134,18 @@ class ClusterCatAccess:
         self.load_extend_sed_table(target=target)
         return np.array(self.extend_data['extend_sed_table_data_%s' % target]['id'])
 
+    def get_extend_sed_coords_world(self, target):
+        """
+        access extended sed fit id
+
+        Parameters
+        ----------
+        target : str
+        """
+        # check if loaded
+        self.load_extend_sed_table(target=target)
+        return np.array(self.extend_data['extend_sed_table_data_%s' % target]['ra']), np.array(self.extend_data['extend_sed_table_data_%s' % target]['dec'])
+
     def get_extend_sed_age(self, target):
         """
         access extended sed fit age
@@ -1180,7 +1192,7 @@ class ClusterCatAccess:
         """
 
         # convert to E(B-V)
-        return dust_tools.DustTools.av2ebv(av=self.get_extend_sed_av(target))
+        return DustTools.av2ebv(av=self.get_extend_sed_av(target))
 
     def identify_phangs_id_in_ext_phot_table(self, target, single_phangs_cluster_id):
 

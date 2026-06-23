@@ -1,7 +1,10 @@
 """
 Script to access Properties of nearby galaxies. Special emphasize is set on PHANGS galaxies
 """
-from pathlib import Path
+from astroquery.ipac.irsa.irsa_dust import IrsaDust
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from dust_extinction import parameter_averages
 from astropy.table import Table
 import numpy as np
 from obszugang import access_config
@@ -74,6 +77,44 @@ class PhangsSampleAccess:
         mask_target = self.phangs_sample_table['name'] == target
         return (float(self.phangs_sample_table['orient_ra'][mask_target].value[0]),
                 float(self.phangs_sample_table['orient_dec'][mask_target].value[0]))
+
+    def get_target_redshift(self, target):
+        """
+        load SFR for a PHANGS target
+        Parameters
+        ----------
+        target : str
+            Galaxy name
+        """
+        self.check_load_phangs_data_table()
+        mask_target = self.phangs_sample_table['name'] == target
+        print(self.phangs_sample_table.colnames)
+        exit()
+
+        return self.phangs_sample_table['props_sfr'][mask_target].value[0]
+
+
+    def get_target_alias(self, target):
+        """
+        load SFR for a PHANGS target
+        Parameters
+        ----------
+        target : str
+            Galaxy name
+        """
+        self.check_load_phangs_data_table()
+        mask_target = self.phangs_sample_table['name'] == target
+        list_alias = str(self.phangs_sample_table['alias'][mask_target]).split(';')
+        messier_names = [item for item in list_alias if item[:7].lower() == 'messier']
+        pgc_names = [item for item in list_alias if item[:3].lower() == 'pgc']
+
+        if messier_names:
+            return messier_names[0].upper()
+        elif pgc_names:
+            return pgc_names[0].upper()
+        else:
+            return self.phangs_sample_table['props_sfr'][mask_target].value[0]
+
 
     def get_target_sfr(self, target):
         """
@@ -329,18 +370,6 @@ class PhangsSampleAccess:
         mask_target = self.phangs_sample_table['name'] == target
         return self.phangs_sample_table['orient_posang_unc'][mask_target].value[0]
 
-    def get_target_mw_extinction(self, target):
-        """
-        This function is meant to eventually provide extinction levels for PHANGS sources.
-        there are multiple values reported as
-        mwext_sfd98
-        mwext_sfd98_unc
-        mwext_sf11
-        mwext_sf11_unc
-        this needs to be done
-        """
-        raise ModuleNotFoundError('This module is not finished yet. Do not use it. It is only a placeholder')
-
     def get_target_mhi(self, target):
         """"
         load target HI mass
@@ -424,50 +453,69 @@ class PhangsSampleAccess:
         return self.phangs_sample_table['morph_t_unc'][mask_target].value[0]
 
     @staticmethod
-    def get_hst_obs_zp_mag(target, band, mag_sys='vega'):
-        """"
-        load zero point magnitude for a HST target
+    def get_coord_gal_ext_evb(ra, dec, rad_deg=None, method='SandF', ebv_estimator='mean'):
+        """
+        Get the Galactic E(B-V) for a given coordinate
         Parameters
         ----------
-        target : str
-        band : str
-        mag_sys : str
-        """
-        header_df = helper_func.FileTools.load_ascii_table_from_txt(
-            file_name=(Path(access_config.phangs_config_dict['hst_obs_hdr_file_path']) /
-                       ('header_info_%s_prime.txt' % helper_func.FileTools.target_names_no_zeros(target=target))))
-        filter_set = np.array(header_df['filter'].to_list())
-        mask_filter = filter_set == band
+        ra, dec: float or list or `numpy.ndarray`
+            coordinates in degree
+        rad_deg:  `astropy.units.Quantity`
+        method: str
+            must be SFD or SandF and specifies the reference
+            Schlafly, E.F. & Finkbeiner, D.P. 2011, ApJ 737, 103 (SandF).
+            Schlegel, D.J., Finkbeiner, D.P. Davis, M. 1998, ApJ 500, 525 (SFD).
+        ebv_estimator: str
+            must be in ['mean', 'std', 'ref', 'min', 'max']
 
-        if mag_sys == 'vega':
-            return np.array(header_df['zpVEGA'].to_list())[mask_filter]
-        elif mag_sys == 'AB':
-            return np.array(header_df['zpAB'].to_list())[mask_filter]
-        else:
-            raise KeyError('mag_sys must be vega or AB')
+        Returns
+        -------
+        gal_ext_ebv: float or list or `numpy.ndarray`
+        """
+        assert ebv_estimator in ['mean', 'std', 'ref', 'min', 'max']
+        assert method in ['SandF', 'SFD']
+
+        target_coords = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
+        gal_ebv_table = IrsaDust.get_query_table(target_coords, section='ebv', radius=rad_deg)
+        return gal_ebv_table['ext %s %s' % (method, ebv_estimator)]
+
+    def get_target_gal_ext_ebv(self, target, method='SandF', ebv_estimator='mean', rad_deg=None):
+        """
+        Function to get Galactic E(B-V) for phangs target
+        """
+
+        ra_target, dec_target = self.get_target_central_coords(target=target)
+
+        return PhangsSampleAccess.get_coord_gal_ext_evb(ra=ra_target, dec=dec_target, rad_deg=rad_deg, method=method,
+                                                        ebv_estimator=ebv_estimator)
+
     @staticmethod
-    def get_hst_obs_date(target, band):
-        """"
-        load zero point magnitude for a HST target
-        Parameters
-        ----------
-        target : str
-        band : str
-        """
-        header_df = helper_func.FileTools.load_ascii_table_from_txt(
-            file_name=(Path(access_config.phangs_config_dict['hst_obs_hdr_file_path']) /
-                       ('header_info_%s_prime.txt' % helper_func.FileTools.target_names_no_zeros(target=target))))
-        filter_set = np.array(header_df['filter'].to_list())
-        mask_filter = filter_set == band
+    def get_gal_ext_at_wave(ra, dec, wave_mu, rad_deg=None, method='SandF', ebv_estimator='mean', ext_law='F99', r_v=3.1):
+        gal_ext_ebv = PhangsSampleAccess.get_coord_gal_ext_evb(ra=ra, dec=dec, method=method, ebv_estimator=ebv_estimator,
+                                                      rad_deg=rad_deg)
+        ext_model = getattr(parameter_averages, ext_law)(Rv=r_v)
+        return ext_model(wave_mu*u.micron) * r_v * gal_ext_ebv
 
-        return np.array(header_df['date'].to_list())[mask_filter]
+    @staticmethod
+    def get_gal_ext(ra, dec, wave_mu, rad_deg=None, method='SandF', ebv_estimator='mean', ext_law='F99', r_v=3.1):
+        gal_ext_ebv = PhangsSampleAccess.get_coord_gal_ext_evb(ra=ra, dec=dec, rad_deg=rad_deg, method=method,
+                                                      ebv_estimator=ebv_estimator)
 
-    def get_target_redshift(self, target):
-        """"
-        load target redshift
-        """
-        self.check_load_phangs_data_table()
-        print(self.phangs_sample_table.colnames)
-        exit()
-        mask_target = self.phangs_sample_table['name'] == target
-        return self.phangs_sample_table['aco10_phangs'][mask_target].value[0]
+        ext_model = getattr(parameter_averages, ext_law)(Rv=r_v)
+        return ext_model(wave_mu) * r_v * gal_ext_ebv
+
+    @staticmethod
+    def get_target_gal_ext_band(target, band, obs, instrument, rad_deg=None, method='SandF', ebv_estimator='mean', ext_law='F99',
+                                r_v=3.1, wave_estimator='pivot_wave'):
+        gal_ext_ebv = PhangsSampleAccess.get_target_gal_ext_ebv(
+            target=helper_func.FileTools.target_name_no_directions(target=target), method=method,
+            ebv_estimator=ebv_estimator, rad_deg=rad_deg)
+        # get wavelength
+        wave = ObsTools.get_obs_wave(band=band, obs=obs, target=target, instrument=instrument, wave_estimator=wave_estimator, unit='mu') * u.micron
+
+        ext_model = getattr(parameter_averages, ext_law)(Rv=r_v)
+
+        if (wave.value < (1/ext_model.x_range[1])) | (wave.value > (1/ext_model.x_range[0])):
+            return 0
+        else:
+            return (ext_model(wave) * r_v * gal_ext_ebv).value[0]

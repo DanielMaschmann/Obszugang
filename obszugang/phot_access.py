@@ -1097,14 +1097,15 @@ class PhotAccess:
 
         assert obs in ['hst', 'jwst', 'astrosat']
 
-        target_name = getattr(self, 'phot_%s_target_name' % obs)
-
         if band_list is None:
             if obs == 'jwst':
+                target_name = getattr(self, 'phot_%s_target_name' % instrument)
                 band_list = getattr(ObsTools, 'get_%s_obs_band_list' % instrument)(target=target_name, version=getattr(self, '%s_data_ver' % instrument))
             elif obs == 'astrosat':
+                target_name = self.phot_astrosat_target_name
                 band_list = getattr(ObsTools, 'get_%s_obs_band_list' % obs)(target=target_name, version=getattr(self, '%s_data_ver' % obs))
             else:
+                target_name = self.phot_hst_target_name
                 band_list = getattr(ObsTools, 'get_%s_obs_band_list' % obs)(target=target_name)
 
         coverage_mask = np.ones(len(ra), dtype=bool)

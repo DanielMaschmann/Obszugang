@@ -24,7 +24,7 @@ full_alma_galaxy_list = phangs_alma_galaxy_list + alma_add_galaxy_list
 
 phangs_hst_treasury_1_galaxy_list = [
     'ic1954', 'ic5332', 'ngc0628', 'ngc0628c', 'ngc0628e', 'ngc0685', 'ngc1087', 'ngc1097', 'ngc1300', 'ngc1317',
-    'ngc1365', 'ngc1385', 'ngc1433', 'ngc1510', 'ngc1512', 'ngc1559', 'ngc1566', 'ngc1672', 'ngc1792', 'ngc2775',
+        'ngc1365', 'ngc1385', 'ngc1433', 'ngc1510', 'ngc1512', 'ngc1559', 'ngc1566', 'ngc1672', 'ngc1792', 'ngc2775',
     'ngc2835', 'ngc2903', 'ngc3351', 'ngc3621', 'ngc3627', 'ngc4254', 'ngc4298', 'ngc4303', 'ngc4321', 'ngc4535',
     'ngc4536', 'ngc4548', 'ngc4569', 'ngc4571', 'ngc4654', 'ngc4689', 'ngc4826', 'ngc5068', 'ngc5248', 'ngc6744',
     'ngc7496'
@@ -838,6 +838,12 @@ kcwi_obs_target_dict = {
         },
     },
 }
+
+
+# new galaxies observed with KCWI
+# see https://drive.google.com/drive/folders/1KGLBR7rJcC_8tfte75f-gHh_iqjAjS13
+# gratings: bl_large and rl7150_small
+
 
 
 # JWST spectroscopy
