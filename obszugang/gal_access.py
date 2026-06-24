@@ -7,7 +7,7 @@ import astropy.units as u
 from dust_extinction import parameter_averages
 from astropy.table import Table
 import numpy as np
-from obszugang import access_config
+from obszugang import access_config, ObsTools
 from werkzeugkiste import helper_func
 
 
@@ -504,10 +504,9 @@ class PhangsSampleAccess:
         ext_model = getattr(parameter_averages, ext_law)(Rv=r_v)
         return ext_model(wave_mu) * r_v * gal_ext_ebv
 
-    @staticmethod
-    def get_target_gal_ext_band(target, band, obs, instrument, rad_deg=None, method='SandF', ebv_estimator='mean', ext_law='F99',
+    def get_target_gal_ext_band(self, target, band, obs, instrument, rad_deg=None, method='SandF', ebv_estimator='mean', ext_law='F99',
                                 r_v=3.1, wave_estimator='pivot_wave'):
-        gal_ext_ebv = PhangsSampleAccess.get_target_gal_ext_ebv(
+        gal_ext_ebv = self.get_target_gal_ext_ebv(
             target=helper_func.FileTools.target_name_no_directions(target=target), method=method,
             ebv_estimator=ebv_estimator, rad_deg=rad_deg)
         # get wavelength
