@@ -143,6 +143,7 @@ dmypy.json
 *.jpeg
 *.gz
 *.tar
+*.zip
 *.DS_Store
 *.webm
 *.pickle
