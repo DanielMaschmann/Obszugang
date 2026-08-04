@@ -14,7 +14,7 @@ class ObsAccess(phot_access.PhotAccess, gas_access.GasAccess, spec_access.SpecAc
                  phot_nircam_target_name=None, phot_miri_target_name=None, phot_astrosat_target_name=None,
                  x_target_name=None, radio_target_name=None,
                  nircam_data_ver='v1p1p1', miri_data_ver='v1p1p1', astrosat_data_ver='v1p0',
-                 nirspec_data_ver=None, miri_mrs_data_ver=None):
+                 nirspec_data_ver=None, miri_mrs_data_ver=None, nircam_program_id=2107, miri_program_id=2107):
         phot_access.PhotAccess.__init__(self,
                                         phot_target_name=target_name,
                                         phot_hst_target_name=phot_hst_target_name,
@@ -24,7 +24,9 @@ class ObsAccess(phot_access.PhotAccess, gas_access.GasAccess, spec_access.SpecAc
                                         phot_astrosat_target_name=phot_astrosat_target_name,
                                         nircam_data_ver=nircam_data_ver,
                                         miri_data_ver=miri_data_ver,
-                                        astrosat_data_ver=astrosat_data_ver)
+                                        astrosat_data_ver=astrosat_data_ver,
+                                        nircam_program_id=nircam_program_id,
+                                        miri_program_id=miri_program_id)
         gas_access.GasAccess.__init__(self, gas_target_name=target_name)
         spec_access.SpecAccess.__init__(self, spec_target_name=target_name,
                                         nirspec_data_ver=nirspec_data_ver,

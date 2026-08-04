@@ -255,38 +255,52 @@ class ObsTools:
             raise KeyError(target, ' has no H-alpha observation ')
 
     @staticmethod
-    def get_nircam_obs_band_list(target, version=None):
+    def get_nircam_obs_band_list(target, version=None, program_id=None):
         """
         gets list of bands of NIRCAM bands
         Parameters
         ----------
         target : str
         version : str
+        program_id : int
         Returns
         -------
         band_list : list
         """
 
         if version is None: version = obs_info.nircam_available_data_versions[-1]
-        nircam_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[target]['nircam_observed_bands']
+        if version == 'v4p1_beta':
+            if program_id is None:
+                raise KeyError(f' For NIRCam version {version}, you have to provide a program_id')
+
+            nircam_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[program_id][target]['nircam_observed_bands']
+        else:
+            nircam_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[target]['nircam_observed_bands']
         wave_list = []
         for band in nircam_band_list:
             wave_list.append(ObsTools.get_jwst_band_wave(band=band))
         return ObsTools.sort_band_list(band_list=nircam_band_list, wave_list=wave_list)
 
     @staticmethod
-    def get_miri_obs_band_list(target, version=None):
+    def get_miri_obs_band_list(target, version=None, program_id=None):
         """
         gets list of bands of MIRI bands
         Parameters
         ----------
         target : str
+        version : str
+        program_id : int
         Returns
         -------
         band_list : list
         """
         if version is None: version = obs_info.miri_available_data_versions[-1]
-        miri_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[target]['miri_observed_bands']
+        if version == 'v4p1_beta':
+            if program_id is None:
+                raise KeyError(f' For Miri version {version}, you have to provide a program_id')
+            miri_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[program_id][target]['miri_observed_bands']
+        else:
+            miri_band_list = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[target]['miri_observed_bands']
         wave_list = []
         for band in miri_band_list:
             wave_list.append(ObsTools.get_jwst_band_wave(band=band, instrument='miri'))
@@ -378,7 +392,7 @@ class ObsTools:
                             target_name=None, hst_target_name=None, nircam_target_name=None, miri_target_name=None,
                             astrosat_target_name=None,
                             nircam_data_ver=None, miri_data_ver=None, astrosat_data_ver=None,
-                            include_hst=True, include_nircam=True, include_miri=True, include_astrosat=True):
+                            nircam_program_id=None, miri_program_id=None, include_hst=True, include_nircam=True, include_miri=True, include_astrosat=True):
         """
         Function to get band lists that are split up by observations
 
@@ -430,13 +444,13 @@ class ObsTools:
             complete_hst_band_list = []
         if include_nircam:
             complete_nircam_band_list = ObsTools.get_nircam_obs_band_list(
-                target=nircam_target_name, version=nircam_data_ver)
+                target=nircam_target_name, version=nircam_data_ver, program_id=nircam_program_id)
         else:
             complete_nircam_band_list = []
 
         if include_miri:
             complete_miri_band_list = ObsTools.get_miri_obs_band_list(
-                target=miri_target_name, version=miri_data_ver)
+                target=miri_target_name, version=miri_data_ver, program_id=miri_program_id)
         else:
             complete_miri_band_list = []
 
@@ -739,12 +753,21 @@ class ObsTools:
         else: return False
 
     @staticmethod
-    def check_nircam_obs(target, version=None):
+    def check_nircam_obs(target, version=None, program_id=None):
         """
         check if NIRCAM observed
         """
         if version is None: version = obs_info.nircam_available_data_versions[-1]
-        jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)
+
+        if version == 'v4p1_beta':
+            if program_id is None:
+                return False
+                # raise KeyError(f' For NIRCam version {version}, you have to provide a program_id')
+
+            jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[program_id]
+        else:
+            jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)
+
 
         if target in jwst_obs_band_dict.keys():
             if jwst_obs_band_dict[target]['nircam_observed_bands']: return True
@@ -752,12 +775,20 @@ class ObsTools:
         else: return False
 
     @staticmethod
-    def check_miri_obs(target, version=None):
+    def check_miri_obs(target, version=None, program_id=None):
         """
         check if MIRI observed
         """
         if version is None: version = obs_info.miri_available_data_versions[-1]
-        jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)
+
+        if version == 'v4p1_beta':
+            if program_id is None:
+                return False
+                # raise KeyError(f' For NIRCam version {version}, you have to provide a program_id')
+
+            jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)[program_id]
+        else:
+            jwst_obs_band_dict = getattr(obs_info, 'jwst_obs_band_dict_%s' % version)
 
         if target in jwst_obs_band_dict.keys():
             if jwst_obs_band_dict[target]['miri_observed_bands']: return True

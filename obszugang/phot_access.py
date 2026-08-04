@@ -26,7 +26,8 @@ class PhotAccess:
 
     def __init__(self, phot_target_name=None, phot_hst_target_name=None, phot_hst_ha_cont_sub_target_name=None,
                  phot_nircam_target_name=None, phot_miri_target_name=None, phot_astrosat_target_name=None,
-                 nircam_data_ver='v1p1p1', miri_data_ver='v1p1p1', astrosat_data_ver = 'v1p0'):
+                 nircam_data_ver='v1p1p1', miri_data_ver='v1p1p1', astrosat_data_ver = 'v1p0',
+                 nircam_program_id=2107, miri_program_id=2107):
         """
 
         Parameters
@@ -87,6 +88,8 @@ class PhotAccess:
         self.nircam_data_ver = nircam_data_ver
         self.miri_data_ver = miri_data_ver
         self.astrosat_data_ver = astrosat_data_ver
+        self.nircam_program_id = nircam_program_id
+        self.miri_program_id = miri_program_id
 
         # loaded data dictionaries
         self.hst_bands_data = {}
@@ -211,9 +214,16 @@ class PhotAccess:
         """
         target_name = getattr(self, 'phot_%s_target_name' % instrument)
 
-        data_folder = (Path(access_config.phangs_config_dict['%s_data_path' % instrument]) /
-                       getattr(self, '%s_data_ver' % instrument) /
-                       target_name)
+        if getattr(self, '%s_data_ver' % instrument) == 'v4p1_beta':
+            program_id = getattr(self, '%s_program_id' % instrument)
+
+            data_folder = (Path(access_config.phangs_config_dict['%s_data_path' % instrument]) /
+                   getattr(self, '%s_data_ver' % instrument) /
+                           str(program_id) / ('%s_%i_jwst_images' % (target_name, program_id)))
+        else:
+            data_folder = (Path(access_config.phangs_config_dict['%s_data_path' % instrument]) /
+                           getattr(self, '%s_data_ver' % instrument) /
+                           target_name)
 
         if target_name == 'ngc1068': extension = ''
         elif (target_name == 'ngc5194') & (instrument == 'miri') & (self.miri_data_ver == 'v0p2'): extension = ''
@@ -221,6 +231,9 @@ class PhotAccess:
 
         if os.path.isfile(Path(data_folder) / Path('%s_%s_lv3_%s_i2d_align_v1p1p1_ff+rscd.fits' % (target_name, instrument, band.lower()))):
             file_name = '%s_%s_lv3_%s_i2d_align_v1p1p1_ff+rscd.fits' % (target_name, instrument, band.lower())
+        elif getattr(self, '%s_data_ver' % instrument) == 'v4p1_beta':
+            program_id = getattr(self, '%s_program_id' % instrument)
+            file_name =  'hlsp_%s_jwst_%s_%s_%s_v4p1_anchor-at%s.fits' % (program_id, instrument, target_name, band.lower(), band.lower())
         else:
             file_name = '%s_%s_lv3_%s_i2d%s.fits' % (target_name, instrument, band.lower(), extension)
 
@@ -687,27 +700,51 @@ class PhotAccess:
                         self.change_band_unit(band=band, new_unit=flux_unit)
                         continue
             # check nircam
-            if self.phot_nircam_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver).keys():
-                if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver)[self.phot_nircam_target_name]['nircam_observed_bands']:
-                    band_loaded_flag = True
-                    # check if band is already loaded
-                    if ((('%s_data_img' % band) not in self.jwst_bands_data) |
-                            ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
-                        if load_nircam:
-                            self.load_nircam_band(band=band, flux_unit=flux_unit, load_err=load_err)
-                    else:
-                        continue
+            if (self.nircam_data_ver == 'v4p1_beta') & (self.nircam_program_id is not None):
+                if self.phot_nircam_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver)[self.nircam_program_id].keys():
+                    if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver)[self.nircam_program_id][self.phot_nircam_target_name]['nircam_observed_bands']:
+                        band_loaded_flag = True
+                        # check if band is already loaded
+                        if ((('%s_data_img' % band) not in self.jwst_bands_data) |
+                                ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
+                            if load_nircam:
+                                self.load_nircam_band(band=band, flux_unit=flux_unit, load_err=load_err)
+                        else:
+                            continue
+            else:
+                if self.phot_nircam_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver).keys():
+                    if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.nircam_data_ver)[self.phot_nircam_target_name]['nircam_observed_bands']:
+                        band_loaded_flag = True
+                        # check if band is already loaded
+                        if ((('%s_data_img' % band) not in self.jwst_bands_data) |
+                                ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
+                            if load_nircam:
+                                self.load_nircam_band(band=band, flux_unit=flux_unit, load_err=load_err)
+                        else:
+                            continue
             # check miri
-            if self.phot_miri_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver).keys():
-                if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver)[self.phot_miri_target_name]['miri_observed_bands']:
-                    band_loaded_flag = True
-                    # check if band is already loaded
-                    if ((('%s_data_img' % band) not in self.jwst_bands_data) |
-                            ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
-                        if load_miri:
-                            self.load_miri_band(band=band, flux_unit=flux_unit, load_err=load_err)
-                    else:
-                        continue
+            if (self.miri_data_ver == 'v4p1_beta') & (self.miri_program_id is not None):
+                if self.phot_miri_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver)[self.miri_program_id].keys():
+                    if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver)[self.miri_program_id][self.phot_miri_target_name]['miri_observed_bands']:
+                        band_loaded_flag = True
+                        # check if band is already loaded
+                        if ((('%s_data_img' % band) not in self.jwst_bands_data) |
+                                ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
+                            if load_miri:
+                                self.load_miri_band(band=band, flux_unit=flux_unit, load_err=load_err)
+                        else:
+                            continue
+            else:
+                if self.phot_miri_target_name in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver).keys():
+                    if band in getattr(obs_info, 'jwst_obs_band_dict_%s' % self.miri_data_ver)[self.phot_miri_target_name]['miri_observed_bands']:
+                        band_loaded_flag = True
+                        # check if band is already loaded
+                        if ((('%s_data_img' % band) not in self.jwst_bands_data) |
+                                ((('%s_data_err' % band) not in self.jwst_bands_data) & load_err)):
+                            if load_miri:
+                                self.load_miri_band(band=band, flux_unit=flux_unit, load_err=load_err)
+                        else:
+                            continue
             # check astrosat
             if self.phot_astrosat_target_name in getattr(obs_info, 'astrosat_obs_band_dict_%s' % self.astrosat_data_ver).keys():
                 if band in getattr(obs_info, 'astrosat_obs_band_dict_%s' % self.astrosat_data_ver)[self.phot_astrosat_target_name]['observed_bands']:
@@ -901,9 +938,10 @@ class PhotAccess:
                                     wcs=self.hst_ha_cont_sub_bands_data['%s_wcs_err' % band],
                                     coord=cutout_pos, cutout_size=cutout_size[band_index])})
 
-            if ObsTools.check_nircam_obs(target=self.phot_nircam_target_name, version=self.nircam_data_ver):
+            if ObsTools.check_nircam_obs(target=self.phot_nircam_target_name, version=self.nircam_data_ver, program_id=self.nircam_program_id):
                 if band in ObsTools.get_nircam_obs_band_list(target=self.phot_nircam_target_name,
-                                                                         version=self.nircam_data_ver):
+                                                             version=self.nircam_data_ver,
+                                                             program_id=self.nircam_program_id):
                     cutout_dict.update({
                         '%s_img_cutout' % band:
                             helper_func.CoordTools.get_img_cutout(img=self.jwst_bands_data['%s_data_img' % band],
@@ -916,9 +954,10 @@ class PhotAccess:
                                                                       wcs=self.jwst_bands_data['%s_wcs_err' % band],
                                                                       coord=cutout_pos,
                                                                       cutout_size=cutout_size[band_index])})
-            if ObsTools.check_miri_obs(target=self.phot_miri_target_name, version=self.miri_data_ver):
+            if ObsTools.check_miri_obs(target=self.phot_miri_target_name, version=self.miri_data_ver, program_id=self.miri_program_id):
                 if band in ObsTools.get_miri_obs_band_list(target=self.phot_miri_target_name,
-                                                                       version=self.miri_data_ver):
+                                                           version=self.miri_data_ver,
+                                                           program_id=self.miri_program_id):
                     cutout_dict.update({
                         '%s_img_cutout' % band:
                             helper_func.CoordTools.get_img_cutout(img=self.jwst_bands_data['%s_data_img' % band],
@@ -1255,6 +1294,8 @@ class PhotAccess:
         # get source cutout
         cutout_dict_src = self.get_band_cutout_dict(
             ra_cutout=ra, dec_cutout=dec, cutout_size=cutout_size, band_list=[band], include_err=True)
+        if cutout_dict_src['%s_img_cutout' % band].data is None:
+            return None
         # get the bkg cutout
         cutout_stamp_bkg, cutout_stamp_bkg_rms = self.compute_2d_region_bkg(
             ra=ra, dec=dec, band=band, instrument=instrument, cutout_size=cutout_size, bkg_cutout_size=bkg_cutout_size,

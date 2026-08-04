@@ -1,1 +1,0 @@
-rclone copy drive:scratch/HUBBLE_AND_CLUSTER_TECHNICAL_WORK/HST_image_products/HST_Halpha_contsub_images/v1p1 /media/benutzer/Extreme\ Pro/data/phangs_hst/HST_Halpha_contsub_images/v1p1 --include "*.fits" 

@@ -9,6 +9,8 @@ from astropy.wcs import WCS
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+
+
 try:
     from TardisPipeline.readData.MUSE_WFM import get_MUSE_polyFWHM
 except ImportError:
@@ -42,6 +44,7 @@ class SpecAccess:
         # loaded data dictionaries
         self.muse_dap_map_data = {}
         self.muse_datacube_data = {}
+        self.muse_filter_image_data = {}
         self.kcwi_datacube_data = {}
         self.nirspec_datacube_data = {}
         self.miri_mrs_datacube_data = {}
@@ -52,7 +55,8 @@ class SpecAccess:
 
         super().__init__()
 
-    def get_muse_data_file_name(self, data_prod='MUSEDAP', res='copt', ssp_model='fiducial'):
+    def get_muse_data_file_name(self, data_prod='MUSEDAP', res='copt', ssp_model='fiducial',
+                                filter_image_band='Johnson_V'):
         """
 
         Parameters
@@ -66,20 +70,35 @@ class SpecAccess:
         ---------
         fiel_path : str
         """
-
+        #
         # get folder path
+        #
         if self.spec_target_name in obs_info.phangs_muse_treasury_1_galaxy_list:
             data_version = access_config.phangs_config_dict['muse_data_ver_treasury_1']
+            data_prod_str = data_prod
         elif self.spec_target_name in obs_info.phangs_muse_treasury_2_galaxy_list:
             data_version = access_config.phangs_config_dict['muse_data_ver_treasury_2']
+            if data_prod == 'MUSEDAP':
+                data_prod_str = 'MAPS'
+            else:
+                data_prod_str = data_prod
         else:
             raise LookupError('The data version is not specified for this galaxy')
-        file_path = (Path(access_config.phangs_config_dict['muse_data_path']) /
-                     data_version / res / data_prod)
-        if (res == 'copt') & (data_prod == 'MUSEDAP'):
+
+        if res in ['copt', 'native', '150pc', '15asec']:
+            file_path = (Path(access_config.phangs_config_dict['muse_data_path']) / data_version / res / data_prod_str)
+        elif res in list(obs_info.muse_pointing_res_dict[self.spec_target_name].keys()):
+            file_path = (Path(access_config.phangs_config_dict['muse_data_path']) / 'POINTING' /
+                         self.spec_target_name.upper())
+        else:
+            raise KeyError('res is not well defined')
+
+        if (res == 'copt') & (data_prod == 'MUSEDAP') & (self.spec_target_name in obs_info.phangs_muse_treasury_1_galaxy_list):
             file_path /= ssp_model
 
+        #
         # get file name
+        #
         if data_prod == 'MUSEDAP':
             if res == 'copt':
                 file_name = '%s-%.2fasec_MAPS.fits' % (self.spec_target_name.upper(),
@@ -102,8 +121,13 @@ class SpecAccess:
                 file_name = '%s-150pc.fits' % self.spec_target_name.upper()
             elif res == '15asec':
                 file_name = '%s-15asec.fits' % self.spec_target_name.upper()
+            elif res in list(obs_info.muse_pointing_res_dict[self.spec_target_name].keys()):
+                file_name = '%s_DATACUBE_FINAL_%s.fits' % (self.spec_target_name.upper(), res)
             else:
-                raise KeyError(res, ' must be copt, native, 150pc or 15asec')
+                raise KeyError(res, ' must be copt, native, 150pc, 15asec  or individual pointing')
+        elif data_prod == 'filter_image':
+            if res in list(obs_info.muse_pointing_res_dict[self.spec_target_name].keys()):
+                file_name = '%s_IMAGE_FOV_%s_%s.fits' % (self.spec_target_name.upper(), res, filter_image_band)
         else:
             raise KeyError(data_prod, ' must be either DAPMAP or datacubes')
 
@@ -191,11 +215,11 @@ class SpecAccess:
         muse_map_wcs = WCS(muse_hdu[map_type].header)
         muse_hdu.close()
 
-        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+        # data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
 
         self.muse_dap_map_data.update({
-            'dap_map_data_%s_%s' % (data_identifier, map_type): muse_map_data,
-            'dap_map_wcs_%s_%s' % (data_identifier, map_type): muse_map_wcs
+            'dap_map_data_%s_%s_%s' % (res, ssp_model, map_type): muse_map_data,
+            'dap_map_wcs_%s_%s_%s' % (res, ssp_model, map_type): muse_map_wcs
         })
 
     def check_dap_map_loaded(self, res='copt', ssp_model='fiducial', map_type='HA6562_FLUX'):
@@ -203,29 +227,29 @@ class SpecAccess:
         if not 'dap_map_data_%s_%s' % (data_identifier, map_type) in self.muse_dap_map_data.keys():
             self.load_muse_dap_map(res=res, ssp_model=ssp_model, map_type=map_type)
 
-    def get_muse_dap_map_cutout(self, ra_cutout, dec_cutout, cutout_size, map_type_list=None, res='copt', ssp_model='fiducial'):
-        if map_type_list is None:
-            map_type_list = ['HA6562_FLUX']
-        elif isinstance(map_type_list, str):
-            map_type_list = [map_type_list]
+    def load_muse_filter_image(self, res='P01', filter_image_band='Johnson_V'):
+        """
 
-        cutout_pos = SkyCoord(ra=ra_cutout, dec=dec_cutout, unit=(u.degree, u.degree), frame='icrs')
-        cutout_dict = {'cutout_pos': cutout_pos}
-        cutout_dict.update({'cutout_size': cutout_size})
-        cutout_dict.update({'map_type_list': map_type_list})
+        Parameters
+        ----------
+        res : str
+        ssp_model : str
+            This one is only for the copt DAP results
+        map_type : str
 
-        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+        """
+        file_path = self.get_muse_data_file_name(data_prod='filter_image', res=res, filter_image_band=filter_image_band)
 
-        for map_type in map_type_list:
-            # make sure that map typ is loaded
-            self.check_dap_map_loaded(res=res, ssp_model=ssp_model, map_type=map_type)
-            cutout_dict.update({
-                '%s_%s_img_cutout' % (data_identifier, map_type):
-                    helper_func.CoordTools.get_img_cutout(
-                        img=self.muse_dap_map_data['dap_map_data_%s_%s' % (data_identifier, map_type)],
-                        wcs=self.muse_dap_map_data['dap_map_wcs_%s_%s' % (data_identifier, map_type)],
-                        coord=cutout_pos, cutout_size=cutout_size)})
-        return cutout_dict
+        # get MUSE data
+        muse_hdu = fits.open(file_path)
+        muse_filter_image_data = muse_hdu['DATA'].data
+        muse_filter_image_wcs = WCS(muse_hdu['DATA'].header)
+        muse_hdu.close()
+
+        self.muse_filter_image_data.update({
+            'filter_image_data_%s_%s' % (res, filter_image_band): muse_filter_image_data,
+            'filter_image_wcs_%s_%s' % (res, filter_image_band): muse_filter_image_wcs
+        })
 
     def load_muse_cube(self, res='copt'):
         """
@@ -239,6 +263,7 @@ class SpecAccess:
         # get MUSE data
         muse_hdu = fits.open(file_path)
         # get header
+        hdr_primary = muse_hdu['PRIMARY'].header
         hdr_data = muse_hdu['DATA'].header
         hdr_stat = muse_hdu['STAT'].header
         # get wavelength
@@ -252,12 +277,16 @@ class SpecAccess:
         data_cube_muse = muse_hdu['DATA'].data
         var_cube_muse = muse_hdu['STAT'].data
         # get units of data cube and variables
+
         if hdr_data['BUNIT'] == '':
-            data_cube_unit = (1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom
-            var_cube_unit = ((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2
+            data_cube_unit = u.Unit((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)
+            var_cube_unit = u.Unit(((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2)
         else:
             data_cube_unit = u.Unit(hdr_data['BUNIT'])
-            var_cube_unit = u.Unit(hdr_stat['BUNIT'])
+            if hdr_stat['BUNIT'] == '(10**(-20)*erg/s/cm**2/Angstrom)**2':
+                var_cube_unit = u.Unit(((1e-20) * u.erg / u.s / u.cm / u.cm / u.Angstrom)**2)
+            else:
+                var_cube_unit = u.Unit(hdr_stat['BUNIT'])
         # get WCS
         wcs_3d_muse = WCS(hdr_data)
         wcs_2d_muse = wcs_3d_muse.celestial
@@ -271,7 +300,8 @@ class SpecAccess:
             'var_cube_%s' % res: var_cube_muse,
             'data_cube_unit_%s' % res: data_cube_unit,
             'var_cube_unit_%s' % res: var_cube_unit,
-            'hdr_%s' % res: hdr_data,
+            'hdr_primary_%s' % res: hdr_primary,
+            'hdr_data_%s' % res: hdr_data,
             'wcs_3d_%s' % res: wcs_3d_muse,
             'wcs_2d_%s' % res: wcs_2d_muse
         })
@@ -542,6 +572,69 @@ class SpecAccess:
 
         return coverage_mask
 
+    def get_min_dist2muse_hull(self, ra, dec, res='copt'):
+        """
+        Function to check if coordinate points are inside MUSE observation
+
+        Parameters
+        ----------
+        ra : float or ``np.ndarray``
+        dec : float or ``np.ndarray``
+        res : str
+
+        Returns
+        -------
+        coverage_dict : ``np.ndarray``
+        """
+
+        if isinstance(ra, float):
+            ra = [ra]
+            dec = [dec]
+
+        band_hull_dict = self.get_muse_obs_coverage_hull_dict()[res]
+        min_dist_arcsec = np.ones(len(ra), dtype=float) * 9999
+
+        for hull_idx in band_hull_dict.keys():
+            ra_hull = band_hull_dict[hull_idx]['ra']
+            dec_hull = band_hull_dict[hull_idx]['dec']
+            for coord_idx in range(len(ra)):
+                min_dist_arcsec_to_hull =  np.min(np.sqrt((ra_hull - ra[coord_idx]) ** 2 + (dec_hull - dec[coord_idx]) ** 2)) * 3600
+                if min_dist_arcsec[coord_idx] > min_dist_arcsec_to_hull:
+                    min_dist_arcsec[coord_idx] = min_dist_arcsec_to_hull
+
+        return min_dist_arcsec
+
+
+    def find_muse_pointing_for_coords(self, ra, dec, max_dist_dist2hull_arcsec=0.5):
+
+        if isinstance(ra, float):
+            ra = [ra]
+            dec = [dec]
+
+        pointing_dict = {}
+        best_pointing = None
+        list_covered_pointing = []
+        max_dist_in_covered_pointing = 0
+        for res in list(obs_info.muse_pointing_res_dict[self.spec_target_name].keys()):
+            coverage_mask = self.check_coords_covered_by_muse(ra=ra, dec=dec, res=res,
+                                                              max_dist_dist2hull_arcsec=max_dist_dist2hull_arcsec)
+            min_dist2hull = self.get_min_dist2muse_hull(ra=ra, dec=dec, res=res)
+            pointing_dict.update({
+                res : {'coverage_mask': coverage_mask,
+                       'min_dist2hull' : min_dist2hull,
+                       }
+            })
+            for coord_idx in range(len(ra)):
+                if coverage_mask[coord_idx]:
+                    list_covered_pointing.append(res)
+                    if max_dist_in_covered_pointing < min_dist2hull:
+                        best_pointing = res
+                        max_dist_in_covered_pointing = min_dist2hull
+
+        pointing_dict.update({'best_pointing': best_pointing})
+        pointing_dict.update({'list_covered_pointing': list_covered_pointing})
+        return pointing_dict
+
     def check_coords_covered_by_kcwi(self, ra, dec, region_name='combined', grating='bl_large', max_dist_dist2hull_arcsec=0.5):
         """
         Function to check if coordinate points are inside MUSE observation
@@ -704,12 +797,10 @@ class SpecAccess:
         # extract fluxes
         native_spec_flx = (np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1) *
                            self.muse_datacube_data['data_cube_unit_%s' % res])
-
-        # native_spec_flx = np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1)
-        # var_sum = np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1)
-
         native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1) *
                                       self.muse_datacube_data['var_cube_unit_%s' % res])
+        # native_spec_flx = np.sum(self.muse_datacube_data['data_cube_%s' % res][:, mask_spectrum], axis=1)
+        # native_spec_flx_err = np.sqrt(np.sum(self.muse_datacube_data['var_cube_%s' % res][:, mask_spectrum], axis=1))
 
         # get wavelengths
         native_wave = self.muse_datacube_data['wave_%s' % res]
@@ -751,6 +842,119 @@ class SpecAccess:
             'native_good_pixel_mask': native_good_pixel_mask,
         }
 
+        # get redshift if possible
+        phangs_access = gal_access.PhangsSampleAccess()
+        alias_name = phangs_access.get_target_alias(target=self.spec_target_name)
+        redshift = spec_tools.SpecHelper.get_target_ned_redshift(target=alias_name)
+
+        # import urllib3
+        # try:
+        # except urllib3.exceptions.ReadTimeoutError:
+        #     print('lol')
+        #     exit()
+        sys_vel = spec_tools.SpecHelper.get_target_sys_vel(target=self.spec_target_name, redshift=redshift)
+        spec_dict.update({
+            'redshift': redshift,
+            'sys_vel': sys_vel,
+        })
+
+        return spec_dict
+
+    def extract_muse_spec_gauss_app(self, ra, dec, fwhm_arcsec, wave_range=None, res='copt'):
+        """
+
+        Parameters
+        ----------
+        ra, dec : float
+        rad_arcsec : float
+            radius in arcseconds
+        wave_range : tuple or None
+        res : str
+
+        Return
+        ---------
+        spec_dict : dict
+            Dictionary with all spectra related values
+            fluxes are in units of ``10$^{-16}$ erg cm$^{-2}$ s$^{-1}$ ${\rm \AA^{-1}}$``
+        """
+
+        # make sure muse cube is loaded
+        if 'data_cube_%s' % res not in self.muse_datacube_data.keys():
+            self.load_muse_cube(res=res)
+
+
+        # get select spectra from coordinates
+        obj_coords_world = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
+        obj_coords_muse_pix = self.muse_datacube_data['wcs_2d_%s' % res].world_to_pixel(obj_coords_world)
+        selection_fwhm_pix = helper_func.CoordTools.transform_world2pix_scale(
+            length_in_arcsec=fwhm_arcsec, wcs=self.muse_datacube_data['wcs_2d_%s' % res])
+        selection_sig_pix = helper_func.TransTools.gauss_fwhm2sig(fwhm=selection_fwhm_pix)
+
+        # select spaxels which are inside the selected radius
+        x_lin_muse = np.linspace(1, self.muse_datacube_data['data_cube_%s' % res].shape[2],
+                                 self.muse_datacube_data['data_cube_%s' % res].shape[2])
+        y_lin_muse = np.linspace(1, self.muse_datacube_data['data_cube_%s' % res].shape[1],
+                                 self.muse_datacube_data['data_cube_%s' % res].shape[1])
+        x_data_muse, y_data_muse = np.meshgrid(x_lin_muse, y_lin_muse)
+        # create 2d Gauss
+        gauss = helper_func.FuncAndModels.gauss2d_rot(x=x_data_muse, y=y_data_muse, amp=1, x0=obj_coords_muse_pix[0],
+                                                      y0=obj_coords_muse_pix[1], sig_x=selection_sig_pix,
+                                                      sig_y=selection_sig_pix, theta=0)
+
+        scaled_spec = self.muse_datacube_data['data_cube_%s' % res] * gauss
+        scaled_var = self.muse_datacube_data['var_cube_%s' % res] * gauss
+
+        # now to accelerate this we select only those spaxels which are somwhere around this
+        mask_spectrum = (np.sqrt((x_data_muse - obj_coords_muse_pix[0]) ** 2 +
+                                 (y_data_muse - obj_coords_muse_pix[1]) ** 2) < 10 * selection_fwhm_pix)
+        # extract fluxes
+        native_spec_flx = np.sum(scaled_spec[:, mask_spectrum], axis=1) * self.muse_datacube_data['data_cube_unit_%s' % res]
+        native_spec_flx_err = np.sqrt(np.sum(scaled_var[:, mask_spectrum], axis=1) *
+                                self.muse_datacube_data['var_cube_unit_%s' % res])
+
+
+
+
+
+        # get wavelengths
+        native_wave = self.muse_datacube_data['wave_%s' % res]
+        # getting line spread function
+        lsf_fwhm = spec_tools.SpecHelper.get_muse_lsf_fwhm(wave = native_wave)
+
+        if sum(np.invert(np.isnan(native_spec_flx))) == 0:
+            return None
+
+        # get wavelength range
+        if wave_range is None:
+            wave_range = [np.nanmin(self.muse_datacube_data['wave_%s' % res][np.invert(np.isnan(native_spec_flx))]),
+                          np.nanmax(self.muse_datacube_data['wave_%s' % res][np.invert(np.isnan(native_spec_flx))])]
+        else:
+            wave_range = wave_range
+
+        # make sure wave length range is applied to all arrays
+        mask_wave_range = (native_wave >= wave_range[0]) & (native_wave <= wave_range[1])
+        native_spec_flx = native_spec_flx[mask_wave_range]
+        native_spec_flx_err = native_spec_flx_err[mask_wave_range]
+        # hot fix for nan errors
+        mask_problematic_err = np.isnan(native_spec_flx) + np.isinf(native_spec_flx) + np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)
+        native_spec_flx_err[mask_problematic_err] = native_spec_flx[mask_problematic_err]
+        native_wave = native_wave[mask_wave_range]
+        lsf_fwhm = lsf_fwhm[mask_wave_range]
+        native_good_pixel_mask = (np.invert(np.isnan(native_spec_flx) + np.isinf(native_spec_flx) +
+                                            np.isnan(native_spec_flx_err) + np.isinf(native_spec_flx_err)))
+
+        spec_dict = {
+            # general description of spectrum
+            'fwhm_arcsec': fwhm_arcsec,
+            'lsf_fwhm': lsf_fwhm,
+            # native spectrum
+            'native_wave_range': wave_range,
+            'nativ_wave_vaccum': self.muse_datacube_data['vacuum_%s' % res],
+            'native_spec_flx': native_spec_flx,
+            'native_spec_flx_err': native_spec_flx_err,
+            'native_wave': native_wave,
+            'native_good_pixel_mask': native_good_pixel_mask,
+        }
 
         # get redshift if possible
         phangs_access = gal_access.PhangsSampleAccess()
@@ -769,6 +973,14 @@ class SpecAccess:
         })
 
         return spec_dict
+
+
+
+
+
+
+
+
 
     def extract_kcwi_spec_circ_app(self, ra, dec, rad_arcsec, region_name='combined', grating='bl_large', wave_range=None):
         """
@@ -972,7 +1184,7 @@ class SpecAccess:
         return {'lam_range': lam_range, 'spec_flux': spec_flux, 'spec_flux_err': spec_flux_err, 'lam': lam,
                 'lsf': lsf, 'good_pixel_mask': good_pixel_mask, 'rad_arcsec': rad_arcsec}
 
-    def extract_muse_spec_gauss_app(self, ra, dec, fwhm_arcsec, wave_range=None, res='copt'):
+    def extract_muse_spec_gauss_app_old(self, ra, dec, fwhm_arcsec, wave_range=None, res='copt'):
         """
 
         Parameters
@@ -1119,4 +1331,32 @@ class SpecAccess:
 
         return spec_dict
 
+
+
+
+
+
+    def get_muse_dap_map_cutout(self, ra_cutout, dec_cutout, cutout_size, map_type_list=None, res='copt', ssp_model='fiducial'):
+        if map_type_list is None:
+            map_type_list = ['HA6562_FLUX']
+        elif isinstance(map_type_list, str):
+            map_type_list = [map_type_list]
+
+        cutout_pos = SkyCoord(ra=ra_cutout, dec=dec_cutout, unit=(u.degree, u.degree), frame='icrs')
+        cutout_dict = {'cutout_pos': cutout_pos}
+        cutout_dict.update({'cutout_size': cutout_size})
+        cutout_dict.update({'map_type_list': map_type_list})
+
+        data_identifier = helper_func.FileTools.get_dap_data_identifier(res=res, ssp_model=ssp_model)
+
+        for map_type in map_type_list:
+            # make sure that map typ is loaded
+            self.check_dap_map_loaded(res=res, ssp_model=ssp_model, map_type=map_type)
+            cutout_dict.update({
+                '%s_%s_img_cutout' % (data_identifier, map_type):
+                    helper_func.CoordTools.get_img_cutout(
+                        img=self.muse_dap_map_data['dap_map_data_%s_%s' % (data_identifier, map_type)],
+                        wcs=self.muse_dap_map_data['dap_map_wcs_%s_%s' % (data_identifier, map_type)],
+                        coord=cutout_pos, cutout_size=cutout_size)})
+        return cutout_dict
 

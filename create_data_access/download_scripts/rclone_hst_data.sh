@@ -1,0 +1,3 @@
+rclone copy drive:scratch/HUBBLE_AND_CLUSTER_TECHNICAL_WORK/HST_image_products/HST_reduced_images/ngc685/uvis657n_17457_17502/ngc685_uvis_f657n_exp_drc_sci.fits /media/benutzer/derka_derka/data/hst/HST_reduced_images/ngc685/uvisf657n 
+rclone copy drive:scratch/HUBBLE_AND_CLUSTER_TECHNICAL_WORK/HST_image_products/HST_reduced_images/ngc685/uvis657n_17457_17502/ngc685_uvis_f657n_err_drc_wht.fits /media/benutzer/derka_derka/data/hst/HST_reduced_images/ngc685/uvisf657n 
+rclone copy drive:scratch/HUBBLE_AND_CLUSTER_TECHNICAL_WORK/HST_image_products/HST_reduced_images/ngc685/uvis657n_17457_17502/ngc685_uvis_f657n_exp_drc_wht.fits /media/benutzer/derka_derka/data/hst/HST_reduced_images/ngc685/uvisf657n 

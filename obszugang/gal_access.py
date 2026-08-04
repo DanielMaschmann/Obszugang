@@ -102,6 +102,7 @@ class PhangsSampleAccess:
         target : str
             Galaxy name
         """
+
         self.check_load_phangs_data_table()
         mask_target = self.phangs_sample_table['name'] == target
         list_alias = str(self.phangs_sample_table['alias'][mask_target]).split(';')
@@ -113,7 +114,7 @@ class PhangsSampleAccess:
         elif pgc_names:
             return pgc_names[0].upper()
         else:
-            return self.phangs_sample_table['props_sfr'][mask_target].value[0]
+            return target
 
 
     def get_target_sfr(self, target):
