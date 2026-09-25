@@ -82,7 +82,7 @@ class PSFTools:
         # now there is not an estimated PSF for every filter at the moment hence we use the closest filter available
         with open(path2psf_dict / psf_dict_filename, 'rb') as file_name:
             psf_dict = pickle.load(file_name)
-        # print(psf_dict)
+
         return psf_dict[PSFTools.get_closest_available_hst_psf_filter(band=band, instrument=instrument)]
 
     @staticmethod
@@ -411,7 +411,8 @@ class PSFTools:
             y_bins=apert_gauss_corr_dict[used_band]['measured_std_values'],
             func_values=apert_gauss_corr_dict[used_band]['measured_flux_frac_in_apert'],
             method='cubic')
-
+        print('std ', std)
+        print(apert_gauss_corr_dict[used_band]['measured_std_values'])
         if std < np.min(apert_gauss_corr_dict[used_band]['measured_std_values']):
             std = np.min(apert_gauss_corr_dict[used_band]['measured_std_values'])
         if std > np.max(apert_gauss_corr_dict[used_band]['measured_std_values']):
@@ -420,7 +421,7 @@ class PSFTools:
         else:
             too_extended_flag = False
 
-        corr_fact = 1 / helper_func.InterpTools.get2dinterp_value(interp_func=interp_func, x_val=apert_rad, y_val=std)
+        corr_fact = 1 / helper_func.InterpTools.get2dinterp_value(interp_func=interp_func, x_val=apert_rad, y_val=std)[0]
 
         return corr_fact, too_extended_flag
 

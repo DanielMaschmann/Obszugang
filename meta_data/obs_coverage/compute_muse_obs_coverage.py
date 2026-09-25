@@ -10,17 +10,21 @@ from obszugang import obs_info
 from obszugang import spec_access
 import matplotlib.pyplot as plt
 
-target_list = obs_info.phangs_muse_galaxy_list
+# target_list = obs_info.phangs_muse_galaxy_list
 # target_list = obs_info.phangs_muse_treasury_2_galaxy_list
 
+target_list = ['ic1954', 'ic5273', 'ic5332', 'ngc0628', 'ngc1068', 'ngc1087', 'ngc1097', 'ngc1300', 'ngc1317', 'ngc1365', 'ngc1385', 'ngc1433', 'ngc1512', 'ngc1566', 'ngc1672', 'ngc1808', 'ngc2775', 'ngc2835', 'ngc2903', 'ngc3351', 'ngc3368', 'ngc3596', 'ngc3627', 'ngc4254', 'ngc4303', 'ngc4321', 'ngc4424', 'ngc4496a', 'ngc4535', 'ngc4548', 'ngc4579', 'ngc4689', 'ngc4694', 'ngc4731', 'ngc4941', 'ngc5068', 'ngc5248', 'ngc5643', 'ngc7496']
 
 for target in target_list:
 
     # if os.path.isfile('data_output/%s_muse_obs_hull_dict.pickle' % target):
     #     continue
 
-    if target != 'ngc5643':
-        continue
+    # if target != 'ic5273':
+    #     continue
+
+    # if target in ['eso486_g021', 'ngc7496', 'ic1727']:
+    #     continue
 
     # target = 'ngc2835'
 

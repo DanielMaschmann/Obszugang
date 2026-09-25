@@ -56,12 +56,12 @@ class XAccess:
         """
         assert energy in ['0p5to2', '0p5to7', '2to7']
 
-        file_path = Path(access_config.phangs_config_dict['chandra_data_path'])
         if self.x_target_name == 'ngc5194':
-            # file_name = '%s-%s-asca-merged-im-bin1.fits' % (self.x_target_name.upper(), energy)
+            file_path = Path(access_config.phangs_config_dict['x_ray_data_path']).parent / 'NGC5194'
             file_name = '%s-%s-merged-img-bin1_astro.fits' % (self.x_target_name.upper(), energy)
         else:
-            file_name = '%s-%s-merged-img-bin1_astro.fits' % (self.x_target_name.upper(), energy)
+            file_path = Path(access_config.phangs_config_dict['x_ray_data_path']) / self.x_target_name.upper()
+            file_name = '%s_CXO_%skeV.fits' % (self.x_target_name.upper(), energy)
 
         return file_path / file_name
 

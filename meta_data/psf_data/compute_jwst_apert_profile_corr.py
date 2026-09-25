@@ -212,8 +212,8 @@ for band in nircam_band_list:
     print('max_convolution_for_psf_img ', max_convolution_for_psf_img)
 
     # check if this is feasible:
-    if max_convolution_for_psf_img > (10 * psf_std_pix):
-        max_convolution = 10 * psf_std_pix
+    if max_convolution_for_psf_img > (40 * psf_std_pix):
+        max_convolution = 40 * psf_std_pix
     else:
         max_convolution = max_convolution_for_psf_img
     print('max_convolution ', max_convolution)

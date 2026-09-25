@@ -10,7 +10,7 @@ nircam_version = 'v4p1_beta'
 miri_version = 'v4p1_beta'
 jwst_version = 'v4p1_beta'
 
-program_id = 3707
+program_id = 2987
 
 target_list = list(obs_info.jwst_obs_band_dict_v4p1_beta[program_id].keys())
 

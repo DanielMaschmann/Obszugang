@@ -11,7 +11,7 @@ phangs_config_dict = {
     'alma_data_path': '/media/benutzer/derka_derka/data/alma',
     'alma_data_ver': 'v4p0',
     'alma_conv_map_data_path': '/media/benutzer/derka_derka/data/phangs_data_products/conversion_factor_maps',
-    'alma_conv_map_data_ver': 'v2p0',
+    'alma_conv_map_data_ver': 'v3p0',
     'alma_cloud_cat_data_path': '/media/benutzer/derka_derka/data/phangs_data_products/cloud_catalogs/',
     'alma_cloud_cat_data_ver': 'v4p0',
     'alma_cloud_cat_data_release_ver': 'ST1p6',

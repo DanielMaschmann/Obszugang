@@ -469,19 +469,38 @@ class SpecAccess:
         # close header
         miri_mrs_hdu.close()
         # add data to the class attributes
-        self.miri_mrs_datacube_data.update({
-            region_name: {
-                'wave_%s' % channel: wave_miri_mrs,
-                'vacuum_%s' % channel: True,
-                'data_cube_%s' % channel: data_cube_miri_mrs,
-                'err_cube_%s' % channel: err_cube_miri_mrs,
-                'data_cube_unit_%s' % channel: data_cube_unit,
-                'err_cube_unit_%s' % channel: err_cube_unit,
-                'hdr_%s' % channel: hdr_data,
-                'wcs_3d_%s' % channel: wcs_3d_miri_mrs,
-                'wcs_2d_%s' % channel: wcs_2d_miri_mrs
-            }
-        })
+        if region_name in list(self.miri_mrs_datacube_data.keys()):
+            self.miri_mrs_datacube_data[region_name].update({
+                channel:
+                    {
+                        'wave': wave_miri_mrs,
+                        'vacuum': True,
+                        'data_cube': data_cube_miri_mrs,
+                        'err_cube': err_cube_miri_mrs,
+                        'data_cube_unit': data_cube_unit,
+                        'err_cube_unit': err_cube_unit,
+                        'hdr': hdr_data,
+                        'wcs_3d': wcs_3d_miri_mrs,
+                        'wcs_2d': wcs_2d_miri_mrs
+                    }
+            })
+        else:
+            self.miri_mrs_datacube_data.update({
+                region_name: {
+                    channel:
+                        {
+                            'wave': wave_miri_mrs,
+                            'vacuum': True,
+                            'data_cube': data_cube_miri_mrs,
+                            'err_cube': err_cube_miri_mrs,
+                            'data_cube_unit': data_cube_unit,
+                            'err_cube_unit': err_cube_unit,
+                            'hdr': hdr_data,
+                            'wcs_3d': wcs_3d_miri_mrs,
+                            'wcs_2d': wcs_2d_miri_mrs
+                        }
+                }
+            })
 
     def get_muse_obs_coverage_hull_dict(self):
         """
@@ -1297,33 +1316,33 @@ class SpecAccess:
 
         # get select spectra from coordinates
         obj_coords_world = SkyCoord(ra=ra * u.deg, dec=dec * u.deg)
-        obj_coords_miri_mrs_pix = self.miri_mrs_datacube_data[region_name]['wcs_2d_%s' % channel].world_to_pixel(obj_coords_world)
+        obj_coords_miri_mrs_pix = self.miri_mrs_datacube_data[region_name][channel]['wcs_2d'].world_to_pixel(obj_coords_world)
         selection_radius_pix = helper_func.CoordTools.transform_world2pix_scale(
-            length_in_arcsec=rad_arcsec, wcs=self.miri_mrs_datacube_data[region_name]['wcs_2d_%s' % channel])
+            length_in_arcsec=rad_arcsec, wcs=self.miri_mrs_datacube_data[region_name][channel]['wcs_2d'])
         # select spaxels which are inside the selected radius
-        x_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[2],
-                                 self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[2])
-        y_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[1],
-                                 self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel].shape[1])
+        x_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name][channel]['data_cube'].shape[2],
+                                 self.miri_mrs_datacube_data[region_name][channel]['data_cube'].shape[2])
+        y_lin_miri_mrs = np.linspace(1, self.miri_mrs_datacube_data[region_name][channel]['data_cube'].shape[1],
+                                 self.miri_mrs_datacube_data[region_name][channel]['data_cube'].shape[1])
         x_data_miri_mrs, y_data_miri_mrs = np.meshgrid(x_lin_miri_mrs, y_lin_miri_mrs)
         mask_spectrum = (np.sqrt((x_data_miri_mrs - obj_coords_miri_mrs_pix[0]) ** 2 +
                                  (y_data_miri_mrs - obj_coords_miri_mrs_pix[1]) ** 2) < selection_radius_pix)
 
         # extract fluxes
-        native_spec_flx = (np.sum(self.miri_mrs_datacube_data[region_name]['data_cube_%s' % channel][:, mask_spectrum], axis=1) *
-                           self.miri_mrs_datacube_data[region_name]['data_cube_unit_%s' % channel])
+        native_spec_flx = (np.sum(self.miri_mrs_datacube_data[region_name][channel]['data_cube'][:, mask_spectrum], axis=1) *
+                           self.miri_mrs_datacube_data[region_name][channel]['data_cube_unit'])
 
-        native_spec_flx_err = np.sqrt(np.sum(self.miri_mrs_datacube_data[region_name]['err_cube_%s' % channel][:, mask_spectrum], axis=1) *
-                                      self.miri_mrs_datacube_data[region_name]['err_cube_unit_%s' % channel])
+        native_spec_flx_err = np.sqrt(np.sum(self.miri_mrs_datacube_data[region_name][channel]['err_cube'][:, mask_spectrum], axis=1) *
+                                      self.miri_mrs_datacube_data[region_name][channel]['err_cube_unit'])
 
         # get wavelengths
-        native_wave = self.miri_mrs_datacube_data[region_name]['wave_%s' % channel]
+        native_wave = self.miri_mrs_datacube_data[region_name][channel]['wave']
 
         spec_dict = {
             # general description of spectrum
             'rad_arcsec': rad_arcsec,
             # native spectrum
-            'nativ_wave_vaccum': self.miri_mrs_datacube_data[region_name]['vacuum_%s' % channel],
+            'nativ_wave_vaccum': self.miri_mrs_datacube_data[region_name][channel]['vacuum'],
             'native_spec_flx': native_spec_flx,
             'native_spec_flx_err': native_spec_flx_err,
             'native_wave': native_wave,
